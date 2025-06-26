@@ -1,0 +1,19 @@
+#!/bin/bash
+
+
+awslocal sqs list-queues
+
+set -e
+
+echo "[init] Verificando se a fila já existe..."
+
+if ! awslocal sqs get-queue-url --queue-name themachine > /dev/null 2>&1; then
+  echo "[init] Criando fila SQS no LocalStack..."
+  awslocal sqs create-queue --queue-name themachine
+  echo "[init] Fila criada: themachine"
+else
+  echo "[init] Fila já existe: themachine"
+fi
+
+
+
