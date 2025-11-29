@@ -2,6 +2,21 @@ version: "3.8"
 
 services:
 
+  localstack:
+    image: localstack/localstack:3.3
+    container_name: localstack
+    environment:
+      - SERVICES=sqs,dynamodb,s3,secretsmanager
+      - EDGE_PORT=4566
+      - AWS_DEFAULT_REGION=sa-east-1
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./init-aws:/etc/localstack/init/ready.d
+      - /var/run/docker.sock:/var/run/docker.sock
   mysql:
     image: mysql:8.0
     container_name: mysql
@@ -15,32 +30,37 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
-  localstack:
-    image: localstack/localstack:3.3
-    container_name: localstack
-    environment:
-      - SERVICES=sqs,dynamodb,s3
-      - EDGE_PORT=4566
-      - AWS_DEFAULT_REGION=us-east-1
-      - DEBUG=1
-      - DOCKER_HOST=unix:///var/run/docker.sock
-    ports:
-      - "4566:4566"
-    volumes:
-      - localstack_data:/var/lib/localstack
-      - ./init-aws:/etc/localstack/init/ready.d
-      - /var/run/docker.sock:/var/run/docker.sock
-
-  app:
+  worker-python-infra:
     build:
-      context: ./the-machine-java
-    container_name: springboot-app
+      context: ./worker-python-infra
+    container_name: worker-python-infra
+    restart: always
+    depends_on:
+      - localstack
+      - mysql
+    environment:
+      QUEUE_NAME: tratar-ativos
+      QUEUE_NAME_INSIGHTS: tratar-insights
+      DYNAMODB_NAME: insights-refinados
+      SECRET_NAME: minha-secret
+      SECRET_VALUE: kJfyqy8yUVj94SivLsKq4Q
+      LOCALSTACK_ENDPOINT: http://localstack:4566
+      REGION: sa-east-1
+    volumes:
+      - ./logs/python:/var/log/pyapp
+
+
+
+  gestor-ativos-brutos:
+    build:
+      context: ./gestor-ativos-brutos
+    container_name: gestor-ativos-brutos
     restart: always
     depends_on:
       - mysql
-      - localstack
+      - worker-python-infra
     ports:
-      - "8080:8081"
+      - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/minha_base
       SPRING_DATASOURCE_USERNAME: spring
@@ -50,34 +70,20 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_SQS_ENDPOINT_BASE: http://localstack:4566
-      AWS_SQS_QUEUE_URL: http://localstack:4566/000000000000/themachine
+      AWS_SQS_QUEUE_URL: http://localstack:4566/000000000000/tratar-ativos
     volumes:
       - ./logs/java:/var/log/myapp
 
-  sqs-consumer:
+  gerar-insights:
     build:
-      context: ./the-machine-python
-    container_name: machine-python
+      context: ./gerar-insights
+    container_name: gerar-insights
     restart: always
     depends_on:
       - localstack
-      - infra-factory-python
     environment:
       LOCALSTACK_ENDPOINT: http://localstack:4566
-      QUEUE_NAME: themachine
-    volumes:
-      - ./logs/python:/var/log/pyapp
-
-  infra-factory-python:
-    build:
-      context: ./infra-factory-python
-    container_name: infra-factory-python
-    restart: always
-    depends_on:
-      - localstack
-    environment:
-      QUEUE_NAME: themachine
-      DYNAMODB_NAME: themachine-db
+      QUEUE_NAME: tratar-ativos
     volumes:
       - ./logs/python:/var/log/pyapp
 
@@ -109,6 +115,31 @@ services:
     command: -config.file=/etc/promtail/config.yaml
     depends_on:
       - loki
+
+  gestor-insights:
+    build:
+      context: ./worker-insights
+    container_name: gestor-insights
+    restart: always
+    depends_on:
+      - mysql
+      - worker-python-infra
+    ports:
+      - "8085:8085"
+    environment:
+      # Configurações AWS / LocalStack
+      aws.region: sa-east-1
+      aws.access-key: test
+      aws.secret-key: test
+      aws.sqs.endpoint.base: http://localstack:4566
+      aws.sqs.queue.url: http://localstack:4566/000000000000/tratar-insights
+
+      # Ajuste de porta do Spring Boot (caso necessário)
+      # spring:
+      #   main:
+      #     web-application-type: servlet
+    volumes:
+      - ./logs/java:/var/log/myapp
 
 
 volumes:
