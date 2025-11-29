@@ -1,15 +1,39 @@
 # All Machine DEVOPS Study
 
-- Aplicação centralizada em um docker-compose
+- Aplicação centralizada em um docker-compose [ docker-compose up -d]
 
 
-## Aplicação principal
-gestor-ativos-brutos (Java )
+#### Gestor-ativos-brutos - Java 
+ Serviço responsável por buscar ativos na API da B3 , salva na base Mysql e em seguida envia para fila.
+ Permite fazer a busca dos detalhes do ativo salvo na base.
+        
+    Utilizando Serviço :
+    GET     http://localhost:8089/ativos/{ativo}
+    POST    http://localhost:8089/ativos/ body- código do ativo
+   
+    POST http://localhost:8089/fila - body
+    
+    entrypoint estimula fila -> QueueController - endpoint responsável por chamar a fila SQS
+    aws.sqs.queue.url=${AWS_SQS_QUEUE_URL:http://localhost:4566/000000000000/tratar-ativos}
+    
 
-entrypoint 
+#### Consulta-bolsa-valores - Python
+serviço python baseado em Flask ,responsável por fazer a busca de ativos na B3 
+Serviço bate direto na api da B3, chave Hardcode //TODO MUDAR PARA .env  
+    
+    Usando Serviço:
+    GET http://localhost:5000/ativos/MGLU3
+
+    entrypoint -> app/controller.py 
+    serviço    -> consulta.py
+    dependencia-> requirements.txt
 
 
+#### gerar-insights - Python
+script python ,responsável por escutar a fila SQS tratar-ativos .
 
+    Executar serviço :
+    iniciar o arquivo principal -> main.py
 
 
 ````json

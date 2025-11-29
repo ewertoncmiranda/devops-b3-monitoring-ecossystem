@@ -5,7 +5,7 @@ import br.com.miranda.gestor.ativos.brutos.entidade.Ativo;
 import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiAtivoDTO;
 import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiResponseDTO;
 import br.com.miranda.gestor.ativos.brutos.external.repository.AtivoRepository;
-import br.com.miranda.gestor.ativos.brutos.entrypoint.spring.external.ConsultaBrapiExternal;
+import br.com.miranda.gestor.ativos.brutos.external.ConsultaBrapiExternal;
 import br.com.miranda.gestor.ativos.brutos.port.AtivoServicePort;
 import br.com.miranda.gestor.ativos.brutos.port.QueueConnectPort;
 import org.modelmapper.ModelMapper;
@@ -32,11 +32,12 @@ public class AtivoServiceImpl implements AtivoServicePort {
     public Ativo salvar(String codAtivo) {
 
         var retorno = buscarPorSymbol(codAtivo);
+
         if (Objects.isNull(retorno)) {
             //TODO CRIAR EXCEPTION CONTEXTUALIZADA
             throw new RuntimeException();
         }
-        BrapiAtivoDTO brapiDto = retorno.getResults().get(0);
+        BrapiAtivoDTO brapiDto = retorno.getResults().getFirst();
         ModelMapper mapper = new ModelMapper();
         Ativo ativo = mapper.map(brapiDto, Ativo.class);
         var ativoSalvo = ativoRepository.save(ativo);
