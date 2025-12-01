@@ -104,13 +104,18 @@
 
     <build>
 
+
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.sql</include>
+                    <include>**/*.properties</include>
+                    <include>**/*.yml</include>
+                </includes>
                 <filtering>false</filtering>
             </resource>
         </resources>
-
 
         <plugins>
             <!-- Compiler Plugin com annotation processor para MapStruct -->

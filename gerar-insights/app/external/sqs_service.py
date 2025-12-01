@@ -10,10 +10,13 @@ logger = setup_logger()
 
 def ensure_queue(name: str) -> str:
     try:
-        logger.info("validando fila sqs :")
+        logger.info(f"validando se fila sqs {name} existe:")
+        logger.info(f"{sqs.list_queues()}")
+        logger.info(f"{sqs.get_queue_url(QueueName=name)}")
         return sqs.get_queue_url(QueueName=name)['QueueUrl']
+
     except ClientError as e:
-        logger.info("FILA NÃO EXISTENTE")
+        logger.info(f"FILA {name} NÃO EXISTENTE")
         raise e
 
 

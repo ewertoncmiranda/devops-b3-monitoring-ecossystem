@@ -1,4 +1,4 @@
-package br.com.miranda.gestor.ativos.brutos;
+package br.com.miranda.gestor.ativos.brutos.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

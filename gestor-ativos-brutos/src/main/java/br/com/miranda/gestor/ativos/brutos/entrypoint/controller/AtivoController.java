@@ -1,13 +1,11 @@
 package br.com.miranda.gestor.ativos.brutos.entrypoint.controller;
 
 
-import br.com.miranda.gestor.ativos.brutos.entidade.Ativo;
+import br.com.miranda.gestor.ativos.brutos.external.database.entidade.Ativo;
 import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiResponseDTO;
 import br.com.miranda.gestor.ativos.brutos.port.AtivoServicePort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/ativos")

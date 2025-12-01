@@ -2,7 +2,7 @@ import boto3
 import os
 from botocore.config import Config
 
-LOCALSTACK_ENDPOINT = os.getenv('LOCALSTACK_ENDPOINT', 'http://localhost:4566')
+LOCALSTACK_ENDPOINT = os.getenv('LOCALSTACK_ENDPOINT', 'http://localstack:4566')
 QUEUE_NAME = os.getenv('QUEUE_NAME', 'tratar-ativos')
 REGION = os.getenv('AWS_REGION', 'sa-east-1')
 
@@ -23,7 +23,7 @@ sqs = boto3.client(
 )
 dynamodb = boto3.resource(
     'dynamodb',
-    endpoint_url="http://localhost:4566",  # para LocalStack
+    endpoint_url=LOCALSTACK_ENDPOINT,  # para LocalStack
     region_name="sa-east-1",
     aws_access_key_id="test",
     aws_secret_access_key="test"

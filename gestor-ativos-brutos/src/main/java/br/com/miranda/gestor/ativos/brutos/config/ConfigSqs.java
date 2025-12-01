@@ -1,4 +1,4 @@
-package br.com.miranda.gestor.ativos.brutos;
+package br.com.miranda.gestor.ativos.brutos.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

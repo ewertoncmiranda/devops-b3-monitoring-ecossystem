@@ -1,4 +1,4 @@
-package br.com.miranda.gestor.ativos.brutos.external;
+package br.com.miranda.gestor.ativos.brutos.service;
 
 import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiResponseDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -11,12 +11,12 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Collections;
 
 @Service
-public class ConsultaBrapiExternal {
+public class ConsultaBrApiService {
 
     private static final String API_KEY = "kJfyqy8yUVj94SivLsKq4Q";
     private final RestTemplate restTemplate;
 
-    public ConsultaBrapiExternal() {
+    public ConsultaBrApiService() {
         this.restTemplate = new RestTemplate();
     }
 

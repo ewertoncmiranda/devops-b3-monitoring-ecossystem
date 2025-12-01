@@ -1,7 +1,8 @@
-version: "3.8"
-
 services:
 
+  # -----------------------------------------------------------
+  # LOCALSTACK
+  # -----------------------------------------------------------
   localstack:
     image: localstack/localstack:3.3
     container_name: localstack
@@ -17,6 +18,17 @@ services:
       - localstack_data:/var/lib/localstack
       - ./scripts-bash:/etc/localstack/init/ready.d
       - /var/run/docker.sock:/var/run/docker.sock
+
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+
+  # -----------------------------------------------------------
+  # MYSQL
+  # -----------------------------------------------------------
   mysql:
     image: mysql:8.0
     container_name: mysql
@@ -29,63 +41,80 @@ services:
       - "3305:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
 
 
+  # -----------------------------------------------------------
+  # SPRING BOOT
+  # -----------------------------------------------------------
   gestor-ativos-brutos:
     build:
       context: ./gestor-ativos-brutos
     container_name: gestor-ativos-brutos
     restart: always
     depends_on:
-      - mysql
-      - worker-python-infra
+      mysql:
+        condition: service_started
+      localstack:
+        condition: service_healthy
     ports:
-      - "8080:8080"
+      - "8091:8091"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/minha_base
       SPRING_DATASOURCE_USERNAME: spring
       SPRING_DATASOURCE_PASSWORD: spring123
       SPRING_SQL_INIT_MODE: never
+
       AWS_REGION: sa-east-1
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
+
       AWS_SQS_ENDPOINT_BASE: http://localstack:4566
       AWS_SQS_QUEUE_URL: http://localstack:4566/000000000000/tratar-ativos
+
     volumes:
       - ./logs/java:/var/log/myapp
 
+
+  # -----------------------------------------------------------
+  # PYTHON WORKER
+  # -----------------------------------------------------------
   gerar-insights:
     build:
       context: ./gerar-insights
     container_name: gerar-insights
     restart: always
     depends_on:
-      - localstack
+      mysql:
+        condition: service_started
+      localstack:
+        condition: service_healthy
     environment:
       LOCALSTACK_ENDPOINT: http://localstack:4566
       QUEUE_NAME: tratar-ativos
-    volumes:
-      - ./logs/python:/var/log/pyapp
 
 
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
 
+  # -----------------------------------------------------------
+  # LOKI
+  # -----------------------------------------------------------
   loki:
     image: grafana/loki:2.9.0
+    container_name: loki
     ports:
       - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki/local-config.yaml:/etc/loki/local-config.yaml
 
+
+  # -----------------------------------------------------------
+  # PROMTAIL
+  # -----------------------------------------------------------
   promtail:
     image: grafana/promtail:2.9.4
     container_name: promtail
+    depends_on:
+      - loki
     volumes:
       - ./promtail/promtail-config.yaml:/etc/promtail/config.yaml
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -93,11 +122,27 @@ services:
       - /tmp:/tmp
       - /etc/machine-id:/etc/machine-id:ro
     command: -config.file=/etc/promtail/config.yaml
+
+
+  # -----------------------------------------------------------
+  # GRAFANA
+  # -----------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
     depends_on:
       - loki
 
 
-
+# -----------------------------------------------------------
+# VOLUMES
+# -----------------------------------------------------------
 volumes:
   mysql_data:
   localstack_data:

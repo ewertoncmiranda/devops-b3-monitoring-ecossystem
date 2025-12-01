@@ -17,18 +17,6 @@
     aws.sqs.queue.url=${AWS_SQS_QUEUE_URL:http://localhost:4566/000000000000/tratar-ativos}
     
 
-#### Consulta-bolsa-valores - Python
-serviço python baseado em Flask ,responsável por fazer a busca de ativos na B3 
-Serviço bate direto na api da B3, chave Hardcode //TODO MUDAR PARA .env  
-    
-    Usando Serviço:
-    GET http://localhost:5000/ativos/MGLU3
-
-    entrypoint -> app/controller.py 
-    serviço    -> consulta.py
-    dependencia-> requirements.txt
-
-
 #### gerar-insights - Python
 script python ,responsável por escutar a fila SQS tratar-ativos .
 
@@ -99,7 +87,7 @@ services:
       - mysql
       - worker-python-infra
     ports:
-      - "8080:8080"
+      - "8091:8091"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/minha_base
       SPRING_DATASOURCE_USERNAME: spring

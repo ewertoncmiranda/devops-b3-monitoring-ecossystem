@@ -1,4 +1,4 @@
-package br.com.miranda.gestor.ativos.brutos.entidade;
+package br.com.miranda.gestor.ativos.brutos.external.database.entidade;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
