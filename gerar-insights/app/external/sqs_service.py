@@ -1,21 +1,20 @@
-import json
 import time
-from datetime import datetime
 
 from botocore.exceptions import ClientError, ReadTimeoutError
-from app.config.config_logger import setup_logger
+
 from app.config.aws_config import sqs
-from app.external.dynamo_service import salvar_insights_em_dynamodb
-from app.core.insights import gerar_insights
+from app.config.config_logger import setup_logger
+
 logger = setup_logger()
+
 
 def ensure_queue(name: str) -> str:
     try:
+        logger.info("validando fila sqs :")
         return sqs.get_queue_url(QueueName=name)['QueueUrl']
     except ClientError as e:
         logger.info("FILA NÃO EXISTENTE")
         raise e
-
 
 
 def consume_messages(queue_url: str):
@@ -34,11 +33,11 @@ def consume_messages(queue_url: str):
                 logger.info(f"Recebido: {m['Body']}")
                 try:
                     mesg = m['Body']
-                    ativo = json.loads(mesg)
-                    logger.info(f"📈 Processando ativo: {ativo['symbol']}")
+                    # ativo = json.loads(mesg)
+                    logger.info(f"📈 Processando mensagem : {mesg}")
 
-                    insights = gerar_insights(ativo)
-                    salvar_insights_em_dynamodb(ativo, insights)
+                    # insights = gerar_insights(ativo)
+                    # salvar_insights_em_dynamodb(ativo, insights)
 
                     sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=m['ReceiptHandle'])
 

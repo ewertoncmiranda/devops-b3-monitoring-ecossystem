@@ -2,7 +2,7 @@ import boto3
 import os
 from botocore.config import Config
 
-LOCALSTACK_ENDPOINT = os.getenv('LOCALSTACK_ENDPOINT', 'http://localstack:4566')
+LOCALSTACK_ENDPOINT = os.getenv('LOCALSTACK_ENDPOINT', 'http://localhost:4566')
 QUEUE_NAME = os.getenv('QUEUE_NAME', 'tratar-ativos')
 REGION = os.getenv('AWS_REGION', 'sa-east-1')
 

@@ -30,7 +30,6 @@ public class QueueConnectImpl implements QueueConnectPort {
     @Override
     public String enviarMensagemParaFila(String mensagem) {
 
-
         SendMessageResponse response = sqsClient.sendMessage(SendMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .messageBody(mensagem)
