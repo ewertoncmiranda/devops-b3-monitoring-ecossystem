@@ -39,12 +39,18 @@ services:
       MYSQL_PASSWORD: spring123
     ports:
       - "3305:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d
 
 
-  # -----------------------------------------------------------
+
+    # -----------------------------------------------------------
   # SPRING BOOT
   # -----------------------------------------------------------
   gestor-ativos-brutos:
@@ -83,15 +89,22 @@ services:
     build:
       context: ./gerar-insights
     container_name: gerar-insights
-    restart: always
+    ports:
+      - "8080:8080"  # acessar http://localhost:8080
+    volumes:
+      - ./gerar-insights/output_charts:/app/output_charts
     depends_on:
       mysql:
-        condition: service_started
+        condition: service_healthy
       localstack:
         condition: service_healthy
     environment:
-      LOCALSTACK_ENDPOINT: http://localstack:4566
-      QUEUE_NAME: tratar-ativos
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: spring
+      DB_PASS: spring123
+      DB_NAME: minha_base
+
 
 
 

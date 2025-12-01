@@ -23,8 +23,10 @@ sqs = boto3.client(
 )
 dynamodb = boto3.resource(
     'dynamodb',
-    endpoint_url=LOCALSTACK_ENDPOINT,  # para LocalStack
+    endpoint_url="http://localhost:4566",  # para LocalStack
     region_name="sa-east-1",
     aws_access_key_id="test",
     aws_secret_access_key="test"
 )
+
+
