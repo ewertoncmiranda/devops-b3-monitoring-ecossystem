@@ -1,11 +1,11 @@
-# market_data.py
-class MarketData:
-    """
-    Representa o payload de dados do ativo vindo da B3.
+"""
+  Representa o payload de dados do ativo vindo da B3.
 
-    Cada atributo corresponde a um indicador essencial usado por analistas de investimentos,
-    traders, quants e gestores para avaliar preço, risco, volatilidade, liquidez e valor.
-    """
+  Cada atributo corresponde a um indicador essencial usado por analistas de investimentos,
+  traders, quants e gestores para avaliar preço, risco, volatilidade, liquidez e valor.
+  """
+
+class MarketData:
 
     def __init__(self, payload: dict):
         self.symbol = payload["symbol"]

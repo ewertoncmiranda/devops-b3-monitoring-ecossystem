@@ -1,13 +1,12 @@
 from app.dto.market_data import MarketData
+"""
+Combina todas as estratégias quantitativas e fundamentais para tomar decisões de compra
+e venda, integrando Momentum, Valuation e Mean Reversion.
 
-# trading_engine.py
+Esta classe é responsável apenas pela orquestração (SRP respeitado).
+"""
 class TradingEngine:
-    """
-    Combina todas as estratégias quantitativas e fundamentais para tomar decisões de compra
-    e venda, integrando Momentum, Valuation e Mean Reversion.
 
-    Esta classe é responsável apenas pela orquestração (SRP respeitado).
-    """
 
     def __init__(self, momentum, valuation, meanrev):
         self.momentum = momentum

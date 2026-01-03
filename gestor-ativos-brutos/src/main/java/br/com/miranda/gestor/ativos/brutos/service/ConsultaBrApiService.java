@@ -3,6 +3,7 @@ package br.com.miranda.gestor.ativos.brutos.service;
 import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiResponseDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -13,7 +14,9 @@ import java.util.Collections;
 @Service
 public class ConsultaBrApiService {
 
-    private static final String API_KEY = "kJfyqy8yUVj94SivLsKq4Q";
+    @Value("${brapi.api.key}")
+    private String apiKey;
+
     private final RestTemplate restTemplate;
 
     public ConsultaBrApiService() {
@@ -22,7 +25,7 @@ public class ConsultaBrApiService {
 
     public BrapiResponseDTO executar(String symbol) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", API_KEY);
+        headers.set("Authorization", apiKey);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         HttpEntity<?> entity = new HttpEntity<>(headers);

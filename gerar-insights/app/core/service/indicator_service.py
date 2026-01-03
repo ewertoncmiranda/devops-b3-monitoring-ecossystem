@@ -1,19 +1,16 @@
-# app/service/indicators_service.py
-
 from app.core.indicators import IndicatorsCalculator
+"""
+Serviço responsável por calcular indicadores técnicos e estatísticos.
+Esta classe funciona como uma camada intermediária entre os dados brutos
+e os cálculos disponibilizados por IndicatorsCalculator.
 
+Agora suporta:
+- Execução com pouco histórico (modo teste local)
+- Ajuste automático da janela (auto-window)
+- Garantia de que nenhum indicador retornará valores inválidos
+"""
 
 class IndicatorsService:
-    """
-    Serviço responsável por calcular indicadores técnicos e estatísticos.
-    Esta classe funciona como uma camada intermediária entre os dados brutos
-    e os cálculos disponibilizados por IndicatorsCalculator.
-
-    Agora suporta:
-    - Execução com pouco histórico (modo teste local)
-    - Ajuste automático da janela (auto-window)
-    - Garantia de que nenhum indicador retornará valores inválidos
-    """
 
     def _calcular_janela(self, historical_prices, max_window=20):
         """
@@ -31,7 +28,6 @@ class IndicatorsService:
         if tamanho >= 2:
             return tamanho
 
-        # Histórico insuficiente
         return None
 
     def calcular_indicadores(self, data, historical_prices, historical_volumes):

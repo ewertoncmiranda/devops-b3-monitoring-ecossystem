@@ -1,85 +1,101 @@
-# app/services/trading_service.py
-
-from app.dto.market_data import MarketData
-from app.core.service.indicator_service import IndicatorsService
-from app.core.service.insight_service import InsightsService
-
-from app.core.trading_engine import TradingEngine
-from app.core.strategies.momentum_strategy import MomentumStrategy
-from app.core.strategies.valuation_strategy import ValuationStrategy
-from app.core.strategies.mean_reversion_strategy import MeanReversionStrategy
-
-
 class TradingService:
     """
-    Serviço responsável por integrar:
-    - MarketData (entrada bruta)
-    - IndicatorsService (cálculo técnico e estatístico)
-    - TradingEngine (lógica de compra e venda)
-    - InsightsService (gera insights adicionais)
+    Serviço responsável por processar o ativo recebido,
+    calcular indicadores e decidir uma ação (Comprar/Vender/Manter).
     """
 
-    def __init__(self):
-        self.indicators_service = IndicatorsService()
-        self.insights_service = InsightsService()
+    def processar_ativo(self, ativo: dict):
+        indicadores = self.calcular_indicadores(ativo)
+        decisao = self.calcular_decisao(indicadores)
+        insights = self.gerar_insights(indicadores)
+        return decisao, indicadores, insights
 
-        self.engine = TradingEngine(
-            MomentumStrategy(),
-            ValuationStrategy(),
-            MeanReversionStrategy()
-        )
+    def calcular_indicadores(self, ativo: dict) -> dict:
+        preco = ativo.get("regularMarketPrice")
+        abertura = ativo.get("regularMarketOpen")
+        max_dia = ativo.get("regularMarketDayHigh")
+        min_dia = ativo.get("regularMarketDayLow")
+        volume = ativo.get("regularMarketVolume")
+        pl = ativo.get("priceEarnings")
+        lpa = ativo.get("earningsPerShare")
+        max52 = ativo.get("fiftyTwoWeekHigh")
+        min52 = ativo.get("fiftyTwoWeekLow")
+        market_cap = ativo.get("marketCap")
 
-    def processar_ativo(self, payload_dict: dict):
+        indicadores = {
+            # --- Indicadores técnicos básicos ---
+            "oscilacao_dia_percentual": (
+                ((max_dia - min_dia) / abertura) * 100
+                if abertura else None
+            ),
+            "variacao_abertura": (
+                ((preco - abertura) / abertura) * 100
+                if abertura else None
+            ),
+
+            # --- Indicadores fundamentalistas ---
+            "pl": pl,
+            "lpa": lpa,
+            "earnings_yield": (
+                (lpa / preco) * 100
+                if preco else None
+            ),
+            "valor_mercado": market_cap,
+
+            # --- Indicadores de risco / volatilidade ---
+            "range_52_semanas": (
+                max52 - min52
+                if max52 and min52 else None
+            ),
+            "posicao_no_range_52w_percent": (
+                (preco - min52) / (max52 - min52) * 100
+                if preco and max52 and min52 and max52 != min52 else None
+            ),
+
+            # --- Volume ---
+            "volume_hoje": volume,
+        }
+
+        return indicadores
+
+    # ---------------------------------------------------------------------
+
+    def calcular_decisao(self, indicadores: dict) -> str:
         """
-        Recebe o JSON vindo da fila, converte para MarketData,
-        calcula indicadores, executa estratégias quantitativas
-        e gera insights adicionais.
+        Regras simplificadas de compra/venda baseadas nos indicadores.
         """
 
-        # 1 — Converte o payload para MarketData
-        data = MarketData(payload_dict)
+        if indicadores["earnings_yield"] and indicadores["earnings_yield"] > 12:
+            return "COMPRAR"
 
-        # 2 — Em produção: recuperar histórico real do SQL
-        # Aqui mockamos para demonstrar o fluxo completo.
-        historical_prices = [
-            data.price * 0.98,
-            data.price * 0.97,
-            data.price * 1.02,
-            data.price * 1.01,
-            data.price
-        ]
+        if indicadores["variacao_abertura"] and indicadores["variacao_abertura"] < -3:
+            return "VENDER"
 
-        historical_volumes = [
-            data.day_volume * 0.8,
-            data.day_volume * 0.9,
-            data.day_volume * 1.1,
-            data.day_volume * 0.7,
-            data.day_volume
-        ]
+        return "MANTER"
 
-        # 3 — Cálculo dos indicadores via serviço dedicado
-        indicators = self.indicators_service.calcular_indicadores(
-            data,
-            historical_prices,
-            historical_volumes
-        )
+    # ---------------------------------------------------------------------
 
-        # 4 — Em produção: puxar do banco P/L médio do setor
-        sector_pe = 10
+    def gerar_insights(self, indicadores: dict) -> list:
+        insights = []
 
-        # 5 — Decisão de compra/venda
-        if self.engine.should_buy(data, indicators, sector_pe):
-            decisao = "COMPRAR"
-        elif self.engine.should_sell(data, indicators, sector_pe):
-            decisao = "VENDER"
-        else:
-            decisao = "MANTER"
+        if indicadores["earnings_yield"] and indicadores["earnings_yield"] > 12:
+            insights.append("A ação está barata em termos de retorno sobre lucro.")
 
-        # 6 — Insights adicionais (6 insights novos)
-        insights = self.insights_service.gerar_insights(
-            data,
-            indicators,
-            sector_pe
-        )
+        if indicadores["posicao_no_range_52w_percent"] is not None:
+            if indicadores["posicao_no_range_52w_percent"] > 80:
+                insights.append("Preço perto da máxima de 52 semanas.")
 
-        return decisao, indicators, insights
+            if indicadores["posicao_no_range_52w_percent"] < 20:
+                insights.append("Preço próximo da mínima anual.")
+
+        if indicadores["oscilacao_dia_percentual"] and indicadores["oscilacao_dia_percentual"] < 1:
+            insights.append("Baixa volatilidade no dia.")
+
+        if not insights:
+            insights.append("Nenhum sinal forte encontrado.")
+
+        return insights
+
+    # ---------------------------------------------------------------------
+
+

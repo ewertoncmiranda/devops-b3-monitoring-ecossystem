@@ -1,16 +1,14 @@
 from sqlalchemy.orm import Session
 
 from app.config.config_logger import setup_logger
-from app.external.database.historico_acao import HistoricoAcao
+from app.external.database.entity.historico_entity import HistoricoAcaoEntity
 logger = setup_logger()
 
 
 class HistoricoRepository:
 
-    def salvar(self, db: Session, entidade: HistoricoAcao):
-        logger.info(f" Iniciando salvar  : {entidade}")
+    def salvar(self, db: Session, entidade: HistoricoAcaoEntity):
         db.add(entidade)
         db.commit()
         db.refresh(entidade)
-        logger.info(f" Objeto salvo  : {entidade}")
         return entidade

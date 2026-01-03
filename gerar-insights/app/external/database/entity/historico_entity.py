@@ -1,10 +1,9 @@
 from sqlalchemy import Column, Integer, String, DateTime, DECIMAL, BigInteger
-from sqlalchemy.orm import declarative_base
+from app.external.database.entity.base import Base
 from datetime import datetime
 
-Base = declarative_base()
 
-class HistoricoAcao(Base):
+class HistoricoAcaoEntity(Base):
     __tablename__ = "historico_acoes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
