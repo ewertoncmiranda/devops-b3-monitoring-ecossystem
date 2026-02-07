@@ -1,134 +1,86 @@
-# Quantitative Trading Strategies – Python SRP Architecture
+Projeto: gerar-insights
 
-Este projeto implementa uma arquitetura completa de trading algorítmico baseada em:
+Visão geral
 
-- Momentum Strategy  
-- Valuation Strategy  
-- Mean Reversion Strategy  
-- Indicadores estatísticos (MA, Volatilidade, Volume, Z-Score)
-- Orquestrador de estratégias (Trading Engine)
+Este repositório contém o serviço "gerar-insights", responsável por processar dados de mercado e produzir insights que alimentam outras partes do ecossistema. O objetivo principal é ler dados (via filas ou banco), transformar em métricas e sinais, e armazenar/expôr esses resultados para consumo. O texto abaixo explica de forma simples como o sistema funciona, quais componentes se integram e as tecnologias envolvidas.
 
-Todo o código segue **SRP (Single Responsibility Principle)**, totalmente modular e pronto para produção.
+Arquitetura e integração entre componentes
 
----
+- Entrada: o serviço recebe mensagens através de SQS (ou outra fila configurada). Essas mensagens trazem snapshots ou eventos de mercado.
+- Processamento: o núcleo do serviço aplica regras, indicadores e estratégias para gerar insights. Esse processamento fica no pacote `app.core` e suas subpartes (indicadores, estratégias, trading engine).
+- Persistência/Enriquecimento: durante ou após o processamento, dados são lidos/escritos em bancos (MySQL é usado no projeto) e/ou DynamoDB (há código para integração com Dynamo na pasta `app.external`). O resultado também pode ser enviado para outros tópicos/filas ou salvo em tabelas para analise posterior.
+- Observabilidade: o projeto inclui configuração de logs estruturados para facilitar debug e auditoria.
 
-# 📌 Estratégias Implementadas
+Fluxo resumido (simples):
+1. Mensagem chega na fila (SQS).
+2. `entrypoint_sqs` consome a mensagem e chama os serviços de processamento.
+3. O core aplica indicadores e produz resultados (`app.core.insights`, `trading_engine`).
+4. Resultados são armazenados no banco e/ou Dynamo e, se necessário, publicados para outros consumidores.
 
-## 1. Momentum Strategy
-Usa:
-- Média móvel de 20 períodos
-- Volume acima da média
+Componentes principais
 
-Compra quando:
-- Preço cruza para cima da média móvel  
-- Volume > média × 1.3
+- `entrypoint/` — pontos de entrada para o serviço (ex.: SQS).
+- `core/` — lógica de negócio: indicadores, geração de insights e mecanismo de trading.
+- `external/` — adaptadores para serviços externos (DynamoDB, banco, etc.).
+- `config/` — configurações, detectores de ambiente e logger.
+- `dto/` — objetos de transporte (por exemplo, `market_data.py`).
+- `tests/` — testes unitários e de integração já presentes no projeto.
 
-Venda quando:
-- Preço cruza para baixo  
-- Volume baixo indica fim da tendência
+Tecnologias utilizadas
 
----
+Com base nos arquivos do projeto (especialmente `requirements.txt`) e na estrutura de pastas, as tecnologias principais são:
 
-## 2. Valuation Strategy (Fundamentalista)
-Compra quando:
-- P/L da empresa < P/L do setor × 0.80
+- Linguagem: Python 3.x (código atual compatível com versões recentes).
+- Filas: AWS SQS (integração via `boto3`).
+- Banco de dados relacional: MySQL (driver `pymysql`, SQLAlchemy para ORM/engine).
+- NoSQL: DynamoDB (há um serviço `dynamo_service.py`).
+- Configuração e ambiente: `python-dotenv` para variáveis de ambiente.
+- Validação/Modelos: `pydantic` para DTOs e validação de dados.
+- Logging: `python-json-logger` para logs estruturados.
+- Requisições HTTP: `requests` (para chamadas externas, se necessário).
 
-Venda quando:
-- P/L > P/L do setor × 1.10
+Como rodar (rápido)
 
----
+1) Criar um ambiente virtual e instalar dependências:
 
-## 3. Mean Reversion Strategy
-Compra quando:
-- Z-Score < -1.5  
-- Preço perto do 52-week low
-
-Venda quando:
-- Z-Score > +1.5  
-- Preço perto do 52-week high
-
----
-
-# 📌 Indicadores Calculados
-- SMA (MA5, MA20, MA50)
-- Volatilidade histórica (std)
-- Volume score (volume atual / média dos últimos 20)
-- Z-Score (desvio do preço em relação à média)
-
----
-
-# 📌 Trading Engine
-A classe **TradingEngine** combina:
-
-- Momentum  
-- Valuation  
-- Mean Reversion  
-
-E toma a decisão final de compra ou venda.
-
-Regra para compra:
-```
-cheap AND discounted AND rising_with_volume
+```powershell
+python -m venv venv; .\venv\Scripts\Activate.ps1; python -m pip install --upgrade pip; pip install -r requirements.txt
 ```
 
-Regra para venda:
-```
-expensive OR overbought OR losing_momentum
-```
+2) Ajustar variáveis de ambiente (usar `.env` ou variáveis do sistema) com credenciais AWS, string de conexão do MySQL e outras configurações encontradas em `app/config`.
 
----
+3) Executar o entrypoint localmente (exemplo):
 
-# 📌 Estrutura de Pastas
-
-```
-/project
-  /strategies
-    momentum_strategy.py
-    valuation_strategy.py
-    mean_reversion_strategy.py
-  /core
-    market_data.py
-    indicators.py
-    trading_engine.py
-  README.md
+```powershell
+python main.py
 ```
 
----
+Observação: dependendo da configuração, o serviço pode estar pensado para rodar em container (há `Dockerfile`) e/ou ser orquestrado via `docker-compose` do diretório raiz.
 
-# 📌 Como Usar
+Estrutura de pastas (resumida)
 
-```python
-data = MarketData(payload)
+- gerar-insights/
+  - app/: código fonte do serviço
+  - env/: exemplos de variáveis de ambiente (se houver)
+  - output_charts/: gráficos/artefatos gerados
+  - tests/: testes automatizados
+  - Dockerfile, requirements.txt, main.py
 
-indicators = {
-    "ma20": IndicatorsCalculator.moving_average(price_series, 20),
-    "z_score": IndicatorsCalculator.z_score(price_series, 50),
-    "volume_score": IndicatorsCalculator.volume_score(data.day_volume, volume_series)
-}
+Testes
 
-engine = TradingEngine(
-    MomentumStrategy(),
-    ValuationStrategy(),
-    MeanReversionStrategy()
-)
+Existem testes em `tests/` (unitários e de integração). Para rodar os testes localmente, assegure que as dependências estejam instaladas e execute o runner de testes que preferir (pytest é o mais provável; caso não exista `pytest` em `requirements.txt`, adicionar pode ser útil).
 
-if engine.should_buy(data, indicators, sector_pe=12):
-    print("Comprar")
-elif engine.should_sell(data, indicators, sector_pe=12):
-    print("Vender")
-```
+Contribuição
 
----
+Sinta-se livre para abrir issues ou pull requests. Se for submeter mudanças maiores, prefira abrir um issue primeiro descrevendo a intenção, porque algumas partes do domínio (estratégias, indicadores) são sensíveis e podem quebrar o comportamento esperado.
 
-# 📌 Objetivo
+Licença
 
-Criar um sistema algorítmico completo capaz de:
-- avaliar dados da B3
-- gerar sinais de compra e venda
-- combinar análise fundamentalista e quantitativa
-- servir de base para arbitragem, swing trade, long & short e position
+O repositório não inclui uma licença explícita neste README. Se for publicar no GitHub, pense em adicionar um arquivo `LICENSE` com a licença desejada.
 
----
+Notas finais (tom coloquial)
 
-# 📌 Licença
-MIT
+Este README tenta explicar de maneira simples o que o projeto faz e como as peças se encaixa, mas pode faltar detalhe fino de configuração (ex.: nomes exatos de filas, tabelas e variáveis de ambiente). Para rodar em produção, cheque os arquivos em `app/config` e as variáveis esperadas. Se algo ficou confuso, me diga que eu ajeito ou complemento com exemplos mais técnicos.
+
+Este README foi movido para o raiz do repositório.
+Por favor, consulte `../README.md` para uma visão geral do projeto, instruções de execução e informações sobre a aplicação Java (`gestor-ativos-brutos`) e outros artefatos.

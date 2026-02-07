@@ -1,0 +1,46 @@
+# gerar-insights specific ignores
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Virtual envs
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+!env/.env.docker
+!env/.env.local
+
+# Logs and outputs
+logs/
+*.log
+output_charts/
+*.png
+*.jpg
+*.jpeg
+
+# Test/cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local DB
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db

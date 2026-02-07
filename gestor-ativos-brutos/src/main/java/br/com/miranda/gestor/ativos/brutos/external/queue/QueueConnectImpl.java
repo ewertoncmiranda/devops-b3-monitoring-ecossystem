@@ -1,20 +1,15 @@
 package br.com.miranda.gestor.ativos.brutos.external.queue;
 
-import br.com.miranda.gestor.ativos.brutos.ConfigSqs;
 import br.com.miranda.gestor.ativos.brutos.port.QueueConnectPort;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import java.net.URI;
-import java.util.logging.Logger;
-
+@Slf4j
 @Service
 public class QueueConnectImpl implements QueueConnectPort {
 
@@ -29,12 +24,23 @@ public class QueueConnectImpl implements QueueConnectPort {
 
     @Override
     public String enviarMensagemParaFila(String mensagem) {
+        log.info("[QUEUE] Preparando envio de mensagem para fila: {}", queueUrl);
+        log.debug("[QUEUE] Tamanho da mensagem: {} bytes", mensagem.length());
+        log.debug("[QUEUE] Conteúdo da mensagem: {}", mensagem.substring(0, Math.min(200, mensagem.length())) + "...");
 
-        SendMessageResponse response = sqsClient.sendMessage(SendMessageRequest.builder()
-                .queueUrl(queueUrl)
-                .messageBody(mensagem)
-                .build());
+        try {
+            SendMessageResponse response = sqsClient.sendMessage(SendMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .messageBody(mensagem)
+                    .build());
 
-        return response.toString();
+            log.info("[QUEUE] Mensagem enviada com sucesso. Message ID: {}", response.messageId());
+            log.debug("[QUEUE] Resposta SQS: {}", response.toString());
+
+            return response.toString();
+        } catch (Exception e) {
+            log.error("[QUEUE] Erro ao enviar mensagem para fila: {}. Erro: {}", queueUrl, e.getMessage(), e);
+            throw e;
+        }
     }
 }

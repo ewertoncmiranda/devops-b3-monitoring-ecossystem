@@ -1,0 +1,88 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# JetBrains / IntelliJ IDEA specifics (ignore IDE workspace/config files)
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea/*workspace*.xml
+.idea/tasks.xml
+.idea/shelf/
+.idea/dictionaries/
+.idea/httpRequests/
+
+# Build artifacts
+target/
+build/
+dist/
+*.jar
+*.war
+*.zip
+
+# Java/Maven
+# allow maven wrapper jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# LocalStack
+~/
+.localstack/
+localstack/
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+
+# Output
+output_charts/
+*.csv
+
+# Cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local config files that should not be committed
+*.env.local
+.env*.local
+
+# Local DB / dev artifact files
+*.sqlite
+*.sqlite3
+*.db
+
+# Editor temporary and project-specific files
+*.cache
+
+# End of file
