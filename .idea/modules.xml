@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/all-the-machine.iml" filepath="$PROJECT_DIR$/.idea/all-the-machine.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/devops-b3-monitoring-ecossystem.iml" filepath="$PROJECT_DIR$/.idea/devops-b3-monitoring-ecossystem.iml" />
     </modules>
   </component>
 </project>
