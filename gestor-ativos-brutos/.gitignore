@@ -1,40 +1,27 @@
-# gestor-ativos-brutos specific ignores
-
-# Maven / build artifacts
-target/
-!**/src/main/**/target/
-!**/src/test/**/target/
-
-# IDE and editor
+# IDEs
 .idea/
-*.iws
-*.iml
-*.ipr
 .vscode/
-
-### STS / Eclipse / NetBeans specifics ###
-.apt_generated
-.classpath
-.factorypath
+*.iml
 .project
-.settings
-.springBeans
-.sts4-cache
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/nb-gradle/
-build/
+.classpath
+.settings/
 
-# Environment
-.env
-.env.local
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
 
 # Logs
 logs/
 *.log
 
-# OS
-.DS_Store
-Thumbs.db
+# Environment variables
+.env
+.env.local

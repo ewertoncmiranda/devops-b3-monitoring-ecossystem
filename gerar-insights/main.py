@@ -1,6 +1,13 @@
 import sys
 import os
 from dotenv import load_dotenv
+from app.config.aws_config import QUEUE_NAME
+from app.config.config_logger import setup_logger
+from app.config.database_config import engine
+from app.config.timeout_db_engine import wait_for_mysql, DatabaseConnectionError
+from app.entrypoint.entrypoint_sqs import consume_messages
+from app.entrypoint.entrypoint_sqs import ensure_queue
+logger = setup_logger()
 
 # =====================
 # Environment Detection and Configuration Loading
@@ -24,15 +31,7 @@ else:
     else:
         print(f"Warning: Configuration file not found: {env_file}")
 
-from app.config.aws_config import QUEUE_NAME
-from app.config.config_logger import setup_logger
-from app.config.database_config import engine
-from app.config.timeout_db_engine import wait_for_mysql, DatabaseConnectionError
-from app.entrypoint.entrypoint_sqs import consume_messages
-from app.entrypoint.entrypoint_sqs import ensure_queue
-from app.external.database.config.create_tables import criar_tabelas
 
-logger = setup_logger()
 
 
 def main():
@@ -43,9 +42,6 @@ def main():
 
         logger.info("Checking database connection")
         wait_for_mysql(engine)
-
-        logger.info("Creating database tables")
-        criar_tabelas()
 
         logger.info(f"Validating SQS queue: {QUEUE_NAME}")
         queue_url = ensure_queue(QUEUE_NAME)

@@ -1,46 +1,29 @@
-# gerar-insights specific ignores
+# IDEs
+.idea/
+.vscode/
 
-# Python bytecode and caches
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-*.pyc
+*$py.class
 
-# Virtual envs
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
 venv/
 .venv/
-env/
-ENV/
 
-# IDE
-.vscode/
-.idea/
-*.iml
-
-# Environment
-.env
+# Environment files locais (Mantenha env/.env.docker fora do ignore se for commitar)
 .env.local
-.env.*.local
-!.env.example
-!env/.env.docker
-!env/.env.local
+.env
 
-# Logs and outputs
-logs/
-*.log
-output_charts/
-*.png
-*.jpg
-*.jpeg
-
-# Test/cache
+# Pytest
 .pytest_cache/
-.coverage
-htmlcov/
-
-# Local DB
-*.db
-*.sqlite
-
-# OS
-.DS_Store
-Thumbs.db

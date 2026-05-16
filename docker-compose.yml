@@ -16,7 +16,6 @@ services:
       - "4566:4566"
     volumes:
       - localstack_data:/var/lib/localstack
-      - ./scripts-aws:/etc/localstack/init/ready.d
       - /var/run/docker.sock:/var/run/docker.sock
 
     healthcheck:
@@ -24,6 +23,25 @@ services:
       interval: 5s
       timeout: 3s
       retries: 30
+
+
+  # -----------------------------------------------------------
+  # PYTHON QUEUE MANAGER
+  # -----------------------------------------------------------
+  gerenciador-filas:
+    build:
+      context: ./gerenciador-filas
+    container_name: gerenciador-filas
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: docker
+      LOCALSTACK_ENDPOINT: http://localstack:4566
+      AWS_REGION: sa-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      QUEUE_NAME: tratar-ativos
 
 
   # -----------------------------------------------------------
@@ -57,20 +75,29 @@ services:
   gestor-ativos-brutos:
     build:
       context: ./gestor-ativos-brutos
+      dockerfile: Dockerfile
+
     container_name: gestor-ativos-brutos
+
     restart: always
+    
     depends_on:
       mysql:
         condition: service_started
+
       localstack:
         condition: service_healthy
+
     ports:
       - "8091:8091"
+
     environment:
       SPRING_PROFILES_ACTIVE: dev
+
       AWS_REGION: sa-east-1
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
+
       AWS_SQS_ENDPOINT_BASE: http://localstack:4566
       AWS_SQS_QUEUE_URL: http://localstack:4566/000000000000/tratar-ativos
 
@@ -87,8 +114,6 @@ services:
     container_name: gerar-insights
     ports:
       - "8080:8080"
-    volumes:
-      - ./gerar-insights/output_charts:/app/output_charts
     depends_on:
       mysql:
         condition: service_healthy
@@ -96,8 +121,6 @@ services:
         condition: service_healthy
     environment:
       ENVIRONMENT: docker
-      DB_HOST: mysql
-      DB_PORT: 3306
       DB_USER: spring
       DB_PASS: spring123
       DB_NAME: minha_base

@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.14 (devops-b3-monitoring-ecossystem)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.14 (devops-b3-monitoring-ecossystem)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13 (devops-b3-monitoring-ecossystem)" project-jdk-type="Python SDK" />
 </project>
