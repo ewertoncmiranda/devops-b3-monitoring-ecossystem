@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-
+import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.SCHEDULER ;
 @Slf4j
 @Component
 @EnableScheduling
@@ -18,22 +18,22 @@ public class ScheduleJob {
 
     @Scheduled(fixedDelay = 25000)
     public void processarAcoes() {
-        log.info("[SCHEDULER] Iniciando processamento em lote de ações");
+        log.info("{}-Iniciando processamento em lote de ações",SCHEDULER);
 
         List<String> acoes = acoesPrincipais;
-        log.info("[SCHEDULER] Total de ações a processar: {}", acoes.size());
+        log.info("{}-Total de ações a processar: {}",SCHEDULER, acoes.size());;
 
         for (String codigo : acoes) {
-            log.info("[SCHEDULER] Processando ação: {}", codigo);
+            log.info("{}-Processando ação: {}",SCHEDULER, codigo);
             try {
                 servicePort.processar(codigo);
-                log.info("[SCHEDULER] Ação processada com sucesso: {}", codigo);
+                log.info("{}-Ação processada com sucesso: {}",SCHEDULER, codigo);
             } catch (Exception e) {
-                log.error("[SCHEDULER] Erro ao processar ação: {}. Erro: {}", codigo, e.getMessage(), e);
+                log.error("{}-Erro ao processar ação: {}. Erro: {}",SCHEDULER, codigo, e.getMessage(), e);
             }
         }
 
-        log.info("[SCHEDULER] Processamento em lote concluído");
+        log.info("{}-Processamento em lote concluído",SCHEDULER);
     }
 
     public static List<String> acoesPrincipais = List.of(

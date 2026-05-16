@@ -1,6 +1,7 @@
 package br.com.miranda.gestor.ativos.brutos.config;
 
 import lombok.extern.slf4j.Slf4j;
+import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.CONFIG_SQS;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,17 +21,17 @@ public class ConfigSqs {
 
     @Bean
     public SqsClient config() {
-        log.info("[CONFIG-SQS] Inicializando SqsClient com endpoint: {}", sqsEndpointBase);
-        log.info("[CONFIG-SQS] Região configurada: SA_EAST_1");
+        var regiao = Region.SA_EAST_1 ;
+        log.info("{}-Inicializando SqsClient com endpoint : {} e região : {}", CONFIG_SQS, sqsEndpointBase,regiao);
 
         SqsClient sqsClient = SqsClient.builder()
                 .endpointOverride(URI.create(sqsEndpointBase))
-                .region(Region.SA_EAST_1)
+                .region(regiao)
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create("test", "test")))
                 .build();
 
-        log.info("[CONFIG-SQS] SqsClient criado com sucesso");
+        log.info("{}-SqsClient criado com sucesso", CONFIG_SQS);
         return sqsClient;
     }
 }

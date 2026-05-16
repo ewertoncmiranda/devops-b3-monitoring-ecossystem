@@ -4,6 +4,7 @@ import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiResponseDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.BRAPI_SERVICE;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class ConsultaBrApiService {
     }
 
     public BrapiResponseDTO executar(String symbol) {
-        log.info("[BRAPI-SERVICE] Iniciando consulta para symbol: {}", symbol);
+        log.info("{}-Iniciando consulta para symbol: {}", BRAPI_SERVICE, symbol);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", apiKey);
@@ -34,10 +35,10 @@ public class ConsultaBrApiService {
 
         HttpEntity<?> entity = new HttpEntity<>(headers);
         String url = "https://brapi.dev/api/quote/" + symbol;
-        log.debug("[BRAPI-SERVICE] URL de requisição: {}", url);
+        log.debug("{}-URL de requisição: {}", BRAPI_SERVICE, url);
 
         try {
-            log.info("[BRAPI-SERVICE] Enviando requisição GET para BRAPI...");
+            log.info("{}-Enviando requisição GET para BRAPI...", BRAPI_SERVICE);
             ResponseEntity<String> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
@@ -45,26 +46,26 @@ public class ConsultaBrApiService {
                     String.class
             );
 
-            log.debug("[BRAPI-SERVICE] Status HTTP recebido: {}", response.getStatusCode());
-            log.debug("[BRAPI-SERVICE] Tamanho da resposta: {} bytes", response.getBody().length());
+            log.debug("{}-Status HTTP recebido: {}", BRAPI_SERVICE, response.getStatusCode());
+            log.debug("{}-Tamanho da resposta: {} bytes", BRAPI_SERVICE, response.getBody().length());
 
             ObjectMapper mapper = new ObjectMapper();
             BrapiResponseDTO result = mapper.readValue(response.getBody(), BrapiResponseDTO.class);
 
-            log.info("[BRAPI-SERVICE] Resposta parseada com sucesso. , Resultados: {}",
-                  result.getResults().size());
+            log.info("{}-Resposta parseada com sucesso. Resultados: {}",
+                  BRAPI_SERVICE, result.getResults().size());
 
             return result;
 
         } catch (HttpClientErrorException.NotFound ex) {
-            log.warn("[BRAPI-SERVICE] Ativo não encontrado: {} (404)", symbol);
+            log.warn("{}-Ativo não encontrado: {} (404)", BRAPI_SERVICE, symbol);
             return null;
         } catch (HttpClientErrorException ex) {
-            log.error("[BRAPI-SERVICE] Erro HTTP ao consultar Brapi. Symbol: {}, Status: {}, Mensagem: {}",
-                    symbol, ex.getStatusCode(), ex.getMessage());
+            log.error("{}-Erro HTTP ao consultar Brapi. Symbol: {}, Status: {}, Mensagem: {}",
+                    BRAPI_SERVICE, symbol, ex.getStatusCode(), ex.getMessage());
             throw ex;
         } catch (JsonProcessingException e) {
-            log.error("[BRAPI-SERVICE] Erro ao processar JSON da resposta BRAPI. Symbol: {}", symbol, e);
+            log.error("{}-Erro ao processar JSON da resposta BRAPI. Symbol: {}", BRAPI_SERVICE, symbol, e);
             throw new RuntimeException("Erro ao processar JSON da resposta da Brapi", e);
         }
     }
