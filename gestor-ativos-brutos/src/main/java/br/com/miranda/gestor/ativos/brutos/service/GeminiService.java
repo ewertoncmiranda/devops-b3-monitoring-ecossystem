@@ -25,15 +25,19 @@ public class GeminiService {
      * Schedulers.boundedElastic pois o SDK é blocante).
      */
     public Mono<String> gerarConteudo(String prompt) {
-        return gerarConteudo(prompt, DEFAULT_MODEL);
+        return gerarConteudo(prompt, DEFAULT_MODEL, null);
     }
 
-    public Mono<String> gerarConteudo(String prompt, String model) {
-        log.info("{}-Gerando conteúdo com Gemini modelo '{}'. Prompt: {}...",
-                GEMINI_SERVICE, model, prompt.substring(0, Math.min(prompt.length(), 50)));
+    public Mono<String> gerarConteudo(String prompt, String model, String apiKey) {
 
         return Mono.fromCallable(() -> {
-            GenerateContentResponse response = geminiClient.models.generateContent(model, prompt, null);
+            Client clientToUse = geminiClient;
+
+            if (apiKey != null && !apiKey.isBlank()) {
+                clientToUse = Client.builder().apiKey(apiKey).build();
+            }
+
+            GenerateContentResponse response = clientToUse.models.generateContent(model, prompt, null);
             return response.text();
         })
                 .subscribeOn(Schedulers.boundedElastic())

@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
@@ -31,15 +32,18 @@ public class InsightAcaoController {
     private final ObjectMapper objectMapper;
 
     @GetMapping("/{simbolo}/analise")
-    public Mono<AiAnalysisResponseDTO> buscarPorSimbolo(@PathVariable String simbolo) {
+    public Mono<AiAnalysisResponseDTO> buscarPorSimbolo(
+            @PathVariable String simbolo,
+            @RequestHeader(value = "X-Gemini-Key") String apiKey) {
+
         log.info("{}-Buscando insights e gerando análise IA para simbolo: {}", BRAPI_SERVICE, simbolo);
-        
+
         List<InsightAcao> sAcaos = service.buscarPorSimbolo(simbolo);
         InsightConsolidadoDTO consolidado = InsightConsolidator.consolidar(sAcaos);
-        
+
         String prompt = PromptBuilderUtils.montarPromptAnaliseQuantitativa(consolidado);
-        
-        return gemini.gerarConteudo(prompt)
+
+        return gemini.gerarConteudo(prompt, "gemini-3-flash-preview", apiKey)
                 .map(this::limparEResolverJson);
     }
 
@@ -49,7 +53,7 @@ public class InsightAcaoController {
                     .replaceAll("(?i)```json", "")
                     .replaceAll("```", "")
                     .trim();
-            
+
             return objectMapper.readValue(cleanJson, AiAnalysisResponseDTO.class);
         } catch (Exception e) {
             log.error("(CONTROLLER)-Erro ao parsear resposta da IA: {}", e.getMessage());
