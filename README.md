@@ -1,51 +1,86 @@
-# DevOps B3 Monitoring Ecosystem
+# B3 Monitoring & AI Insights Ecosystem 🚀
 
-Bem-vindo ao ecossistema de monitoramento de ativos da B3. Este projeto é composto por múltiplos microserviços e componentes de infraestrutura focados na captura, mensageria e extração de valor de indicadores financeiros.
+Este ecossistema foi projetado para monitorar ativos da bolsa brasileira (B3) em tempo real, processar dados fundamentalistas de forma distribuída e gerar análises preditivas/quantitativas utilizando Inteligência Artificial (Google Gemini).
 
-## Componentes do Sistema
+## 🏗️ Arquitetura do Sistema
 
-1. **gerenciador-filas (Python)**: Um worker utilitário responsável por interagir com o LocalStack para provisionar dinamicamente a infraestrutura de mensageria (filas SQS) do ecossistema.
-2. **gerar-insights (Python)**: O coração analítico do sistema. Este worker assíncrono consome as filas SQS e aplica modelos matemáticos fundamentalistas (Fórmula de Graham, Margem de Segurança) sobre ativos brutos para extrair indicações táticas (Compra, Venda, Neutro).
-3. **gestor-ativos-brutos (Java/Spring)**: A aplicação principal gerenciadora de domínio.
-4. **LocalStack & MySQL**: Infraestrutura local emulada via Docker para hospedar a fila SQS (`tratar-ativos`) e o banco de dados relacional.
+O sistema utiliza uma arquitetura baseada em eventos e microserviços, garantindo escalabilidade e resiliência.
 
-## Geração de Valor Financeiro
+```mermaid
+graph TD
+    User([Usuário]) --> |REST| JavaApp[Gestor Ativos Brutos - Java]
+    JavaApp --> |SQL| MySQL[(MySQL 8.0)]
+    JavaApp --> |Pub| SQS[[AWS SQS - LocalStack]]
+    JavaApp --> |API| Brapi{Brapi API}
+    
+    SQS --> |Sub| PythonWorker[Gerar Insights - Python]
+    PythonWorker --> |Process| Graham[Análise de Graham/Valuation]
+    PythonWorker --> |SQL| MySQL
+    
+    JavaApp --> |Prompt| Gemini[Google Gemini AI]
+    Gemini --> |JSON| JavaApp
+    
+    Infrastructure[Terraform] --> |Provision| SQS
+```
 
-O serviço `gerar-insights` não apenas armazena dados, mas extrai inteligência real e acionável. Para cada snapshot financeiro lido:
-- **Preço Justo (Benjamin Graham)**: Calculado com base no Lucro por Ação (LPA).
-- **Margem de Segurança**: Comparação tática entre o preço listado atual do ativo e seu preço justo projetado.
-- **Persistência Centralizada**: Toda essa inteligência é armazenada nativamente no schema do MySQL na tabela dedicada `insight_acao`.
+## 🛠️ Componentes e Tecnologias
 
-## Como Executar
+### 1. Gestor Ativos Brutos (Java 21 + Spring Boot 3)
+O núcleo do sistema. Responsável por:
+- Exposição da API REST para usuários.
+- Integração com a API Brapi para cotações.
+- Orquestração de mensagens via SQS.
+- Consolidação de dados para análise de IA.
+- **Tecnologias**: Spring WebFlux, JPA/Hibernate, AWS SDK, Google GenAI SDK.
 
-### 1. Tudo pelo Docker (Maneira Mais Fácil)
-Isso criará a rede, inicializará os bancos, criará as filas e subirá todos os workers automaticamente.
+### 2. Gerar Insights (Python 3.12)
+Worker especializado em cálculos matemáticos e fundamentalistas:
+- Consome mensagens da fila `tratar-ativos`.
+- Calcula Preço Justo de Graham e Margens de Segurança.
+- Persiste os resultados brutos no MySQL para posterior análise da IA.
+- **Tecnologias**: Boto3, MySQL Connector, Pydantic.
+
+### 3. Infraestrutura & Mensageria
+- **LocalStack**: Emula o ambiente AWS (SQS) localmente.
+- **Terraform**: Automatiza a criação das filas e permissões.
+- **MySQL 8.0**: Base de dados central para histórico e insights calculados.
+
+## 🚀 Como Executar
+
+### Pré-requisitos
+- Docker & Docker Compose
+- Chave de API do Gemini (Google AI Studio)
+
+### Configuração
+Crie um arquivo `.env` na raiz ou exporte a variável:
 ```bash
+export GEMINI_API_KEY=sua_chave_aqui
+```
+
+### Inicialização
+```bash
+# Sobe todo o ecossistema
 docker-compose up -d --build
 ```
-*(Nota: Se houver problemas com as tabelas do MySQL, execute `docker-compose down -v` para apagar os volumes e forçar o script `mysql-init/1 - schema.sql` a rodar).*
 
-### 2. Rodando Serviços Python Localmente (Para Debug/IDE)
-Os serviços em Python foram projetados para serem inteligentes. Se executados fora do Docker, eles mudarão a mira automaticamente para apontar para seu `localhost` (consumindo as portas mapeadas pelo Docker).
-1. Inicie a infraestrutura: `docker-compose up -d mysql localstack`
-2. Configure seus `.env` (veja a seção TODO abaixo).
-3. Execute o código: `python main.py`
+## 🔌 Endpoints Principais
 
-## TODO: Configuração de Arquivos `.env`
+### Monitoramento de Ativos
+- `GET /ativos/{simbolo}`: Retorna a cotação atual e dados da empresa.
+- `POST /ativos/registrar/{simbolo}`: Adiciona o ativo à fila de monitoramento periódico.
 
-Para garantir um fluxo de desenvolvimento perfeito entre o ambiente dockerizado e a sua IDE local, adote a seguinte configuração:
+### Inteligência Artificial (Insights)
+- `GET /insights/{simbolo}/analise`: Consolida os dados fundamentalistas calculados pelo worker Python e gera uma análise qualitativa via Gemini.
+    - **Header Opcional**: `X-Gemini-Key` para usar uma chave dinâmica.
 
-- [ ] **Configuração Local (`gerar-insights` e `gerenciador-filas`)**:
-  Crie arquivos `.env` na raiz dos respectivos projetos contendo credenciais apontadas para o *host local*:
-  ```env
-  ENVIRONMENT=local
-  # Portas mapeadas pelo Docker Compose para a máquina local
-  LOCALSTACK_ENDPOINT=http://localhost:4566
-  DB_HOST=localhost
-  DB_PORT=3305
-  DB_USER=spring
-  DB_PASS=spring123
-  DB_NAME=minha_base
-  ```
-- [ ] **Configuração Docker**:
-  Nenhum `.env` manual é necessário. O `docker-compose.yml` sobrescreve a configuração injetando `ENVIRONMENT: docker`. As aplicações irão automaticamente chavear suas buscas para os serviços internos (`mysql:3306`, `http://localstack:4566`).
+## ⚙️ Configurações Importantes
+
+| Variável | Descrição | Valor Padrão |
+|----------|-----------|--------------|
+| `SERVER_PORT` | Porta do serviço Java | `8091` |
+| `AWS_SQS_ENDPOINT_BASE` | Endpoint do LocalStack | `http://localstack:4566` |
+| `MYSQL_DATABASE` | Nome da base de dados | `minha_base` |
+| `GEMINI_API_KEY` | Chave de acesso ao Google Gemini | - |
+
+## 📄 Documentação Técnica
+A especificação completa da API pode ser encontrada no arquivo [openapi.yaml](./openapi.yaml).

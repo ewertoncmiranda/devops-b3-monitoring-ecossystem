@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: B3 Monitoring Ecosystem - Gestor Ativos Brutos
+  description: API para monitoramento de ativos da B3, extração de dados e geração de insights quantitativos via IA.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8091
+    description: Servidor Local (Docker)
+
+paths:
+  /ativos/{ativo}:
+    get:
+      summary: Busca dados em tempo real de um ativo
+      description: Consulta a API externa (Brapi) para obter a cotação e indicadores fundamentais de um ativo.
+      parameters:
+        - name: ativo
+          in: path
+          required: true
+          description: Símbolo do ativo (ex: PETR4, VALE3)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dados do ativo encontrados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ativo'
+        '404':
+          description: Ativo não encontrado
+
+  /ativos/registrar/{ativo}:
+    post:
+      summary: Registra um ativo para monitoramento contínuo
+      description: Adiciona o ativo a uma lista de processamento agendado para coleta periódica de dados.
+      parameters:
+        - name: ativo
+          in: path
+          required: true
+          description: Símbolo do ativo
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Registro aceito
+
+  /insights/{simbolo}/analise:
+    get:
+      summary: Gera análise quantitativa via IA (Gemini)
+      description: Consolida o histórico de insights do banco de dados e envia para o Google Gemini gerar uma análise técnica/fundamentalista.
+      parameters:
+        - name: simbolo
+          in: path
+          required: true
+          description: Símbolo do ativo
+          schema:
+            type: string
+        - name: X-Gemini-Key
+          in: header
+          required: false
+          description: Chave de API opcional do Gemini (se não informada, usa a chave padrão do servidor)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Análise gerada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiAnalysisResponse'
+
+components:
+  schemas:
+    Ativo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        symbol:
+          type: string
+        shortName:
+          type: string
+        longName:
+          type: string
+        regularMarketPrice:
+          type: number
+          format: double
+        regularMarketChange:
+          type: number
+          format: double
+        regularMarketChangePercent:
+          type: number
+          format: double
+        marketCap:
+          type: number
+          format: int64
+        priceEarnings:
+          type: number
+        earningsPerShare:
+          type: number
+        logoUrl:
+          type: string
+
+    AiAnalysisResponse:
+      type: object
+      properties:
+        ativo:
+          type: string
+        sentimento:
+          type: string
+        forca_sinal:
+          type: string
+        risco:
+          type: string
+        confianca_analise:
+          type: number
+          format: double
+        resumo:
+          type: string
+        analise_tecnica:
+          type: string
+        analise_fundamentalista:
+          type: string
+        possivel_cenario:
+          type: string
+        recomendacao:
+          type: string
