@@ -9,11 +9,7 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 
 @Slf4j
-@SpringBootApplication(exclude = {
-		DataSourceAutoConfiguration.class,
-		HibernateJpaAutoConfiguration.class,
-		RedisAutoConfiguration.class
-})
+@SpringBootApplication
 public class GestorAtivosBrutosApplication {
 
 	public static void main(String[] args) {

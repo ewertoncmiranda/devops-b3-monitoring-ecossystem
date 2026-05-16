@@ -15,7 +15,7 @@ logger = setup_logger()
 persistencia_service = PersistenciaHistoricoService()
 financial_analyzer = FinancialAnalyzerService()
 insight_repository = InsightRepository()
-
+db = SessionLocal()
 
 def ensure_queue(name: str) -> str:
     try:
@@ -63,7 +63,7 @@ def consume_messages(queue_url: str):
                     logger.info("✅ Mensagem processada e deletada com sucesso")
 
                 except (json.JSONDecodeError, ValueError, TypeError) as bad_data_err:
-                    # Erro de formatação (payload ruim). Deletar para não travar a fila em loop.
+                    # Erro de formatação (payload zoadom). Delete para não travar a fila em loop
                     logger.error(f"❌ Payload inválido. Descartando mensagem: {bad_data_err}")
                     sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
@@ -72,22 +72,20 @@ def consume_messages(queue_url: str):
                     logger.error(f"❌ Erro ao processar ativo. Mantendo na fila para retry: {process_err}", exc_info=True)
 
         except Exception as loop_err:
-            # Erros críticos de conexão com a AWS/SQS ou instabilidade de rede.
             logger.error(f"❌ Erro crítico no loop SQS: {loop_err}")
             time.sleep(5)  # Backoff de segurança para não explodir CPU em caso de queda de rede
 
 
 def processar_persistencia(ativo):
     snapshot = SnapshotAcao(ativo)
-    logger.info(f" Iniciando persistencia do objeto: : {snapshot}")
-    db = SessionLocal()
+    logger.info(f"Iniciando persistencia do objeto: {snapshot}")
     try:
         persistencia_service.registrar_snapshot(db, snapshot)
     finally:
         db.close()
 
 def salvar_insight(insight_dict):
-    db = SessionLocal()
+
     try:
         entidade = InsightEntity(
             simbolo=insight_dict["simbolo"],

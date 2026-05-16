@@ -13,5 +13,7 @@ public class ConstantesUtils {
     public static final String CONTROLLER = "(CONTROLLER)";
     public static final String OLLAMA_SERVICE = "(OLLAMA-SERVICE)";
     public static final String OLLAMA_CONTROLLER = "(OLLAMA-CONTROLLER)";
+    public static final String GEMINI_SERVICE = "(GEMINI-SERVICE)";
+    public static final String GEMINI_CONTROLLER = "(GEMINI-CONTROLLER)";
     public static final String MAIN = "(MAIN)";
 }
