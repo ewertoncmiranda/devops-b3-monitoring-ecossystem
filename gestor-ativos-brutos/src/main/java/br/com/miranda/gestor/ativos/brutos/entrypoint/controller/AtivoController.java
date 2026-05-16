@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.CONTROLLER;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import br.com.miranda.gestor.ativos.brutos.entrypoint.schedule.ScheduleJob;
 
 @Slf4j
 @RestController
@@ -14,9 +15,11 @@ import org.springframework.web.bind.annotation.*;
 public class AtivoController {
 
     private final AtivoService service;
+    private final ScheduleJob scheduleJob;
 
-    public AtivoController(AtivoService service) {
+    public AtivoController(AtivoService service, ScheduleJob scheduleJob) {
         this.service = service;
+        this.scheduleJob = scheduleJob;
     }
 
     @GetMapping("/{ativo}")
@@ -25,6 +28,13 @@ public class AtivoController {
         var ativo1 = service.processar(ativo);
         log.info("{}-Resposta preparada para ativo: {}", CONTROLLER, ativo);
         return ativo != null ? ResponseEntity.ok(ativo1) : ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/registrar/{ativo}")
+    public ResponseEntity<Void> registrarAtivo(@PathVariable String ativo) {
+        scheduleJob.registerAtivo(ativo);
+        log.info("{}-Ativo registrado para processamento assíncrono: {}", CONTROLLER, ativo);
+        return ResponseEntity.accepted().build();
     }
 
 }

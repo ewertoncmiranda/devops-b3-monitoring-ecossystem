@@ -22,7 +22,6 @@ services:
       timeout: 3s
       retries: 30
 
-
   # -----------------------------------------------------------
   # TERRAFORM PROVISIONER
   # -----------------------------------------------------------
@@ -42,7 +41,6 @@ services:
       localstack:
         condition: service_healthy
 
-
   # -----------------------------------------------------------
   # PYTHON QUEUE MANAGER
   # -----------------------------------------------------------
@@ -60,7 +58,6 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       QUEUE_NAME: tratar-ativos
-
 
   # -----------------------------------------------------------
   # MYSQL
@@ -84,12 +81,9 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d
-
-
-
     # -----------------------------------------------------------
-  # SPRING BOOT
-  # -----------------------------------------------------------
+    # SPRING BOOT
+    # -----------------------------------------------------------
   gestor-ativos-brutos:
     build:
       context: ./gestor-ativos-brutos
@@ -98,13 +92,16 @@ services:
     container_name: gestor-ativos-brutos
 
     restart: always
-    
+
     depends_on:
       mysql:
         condition: service_started
 
       localstack:
         condition: service_healthy
+
+      ollama:
+        condition: service_started
 
     ports:
       - "8091:8091"
@@ -119,10 +116,10 @@ services:
 
       AWS_SQS_ENDPOINT_BASE: http://localstack:4566
       AWS_SQS_QUEUE_URL: http://localstack:4566/000000000000/tratar-ativos
+      OLLAMA_ENDPOINT: http://ollama:11434
 
     volumes:
       - ./logs/java:/var/log/myapp
-
 
   # -----------------------------------------------------------
   # PYTHON WORKER
@@ -154,10 +151,47 @@ services:
       RETRY_ATTEMPTS: 3
       RETRY_DELAY: 10
 
+  # -----------------------------------------------------------
+  # OLLAMA (AI ENGINE)
+  # -----------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=1
+    healthcheck:
+      test: [ "CMD", "ollama", "list" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama-pull-model:
+    image: curlimages/curl:8.6.0
+    container_name: ollama-pull-model
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        curl -X POST http://ollama:11434/api/pull -d '{"name": "phi3:mini"}'
+
 # -----------------------------------------------------------
 # VOLUMES
 # -----------------------------------------------------------
 volumes:
   mysql_data:
   localstack_data:
+  ollama_data:
 
