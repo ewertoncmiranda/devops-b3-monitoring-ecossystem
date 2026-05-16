@@ -1,20 +1,20 @@
 import json
 import time
-
-from botocore.exceptions import ClientError, ReadTimeoutError
+from botocore.exceptions import ClientError
 
 from app.config.aws_config import sqs
 from app.config.config_logger import setup_logger
 from app.config.database_config import SessionLocal
 from app.core.mapper.equity_snapshot import SnapshotAcao
 from app.core.service.persistencia_service import PersistenciaHistoricoService
-from app.core.service.trading_service import TradingService
-from app.entrypoint.processamento_metricas import ProcessamentoMetricasOrchestrator
-from app.exceptions import QueueProcessingError, InvalidAtivoError, DatabaseError, TradingAnalysisError
+from app.core.service.financial_analyzer_service import FinancialAnalyzerService
+from app.external.database.insight_repository import InsightRepository
+from app.external.database.entity.insight_entity import InsightEntity
 
 logger = setup_logger()
 persistencia_service = PersistenciaHistoricoService()
-processar_metricas = ProcessamentoMetricasOrchestrator()
+financial_analyzer = FinancialAnalyzerService()
+insight_repository = InsightRepository()
 
 
 def ensure_queue(name: str) -> str:
@@ -28,8 +28,7 @@ def ensure_queue(name: str) -> str:
 
 def consume_messages(queue_url: str):
     """
-    Consome mensagens da fila SQS em loop infinito.
-    Processa cada mensagem: análise de trading, persistência e orquestração.
+    Consome mensagens da fila SQS em loop infinito aplicando melhores práticas.
     """
     while True:
         try:
@@ -41,86 +40,62 @@ def consume_messages(queue_url: str):
             messages = resp.get('Messages', [])
 
             if not messages:
-                logger.info("Nenhuma mensagem na fila; aguardando próxima verificação...")
+                logger.info("Nenhuma mensagem na fila; aguardando...")
+                continue
 
             for m in messages:
                 receipt_handle = m['ReceiptHandle']
                 try:
-                    mesg = m['Body']
-                    logger.info(f"✓ Mensagem recebida: {mesg}")
-
-                    ativo = json.loads(mesg)
+                    ativo = json.loads(m['Body'])
                     logger.info(f"📊 Processando ativo: {ativo.get('symbol', 'UNKNOWN')}")
 
-                    # Processa insights
-                    processar_info(ativo)
-
-                    # Persiste histórico
+                    # 1. Persiste histórico bruto
                     processar_persistencia(ativo)
 
-                    # Orquestra métricas gerais
-                    processar_metricas.run()
+                    # 2. Processa insights financeiros objetivos
+                    insight_dict = financial_analyzer.gerar_insight_fundamentalista(ativo)
+                    
+                    # 3. Salva insight no banco
+                    salvar_insight(insight_dict)
 
-                    # Delete com sucesso
-                    sqs.delete_message(
-                        QueueUrl=queue_url,
-                        ReceiptHandle=receipt_handle
-                    )
-                    logger.info(f"✅ Mensagem processada e deletada com sucesso")
-
-                except json.JSONDecodeError as je:
-                    logger.error(f"❌ Erro ao fazer parse JSON da mensagem: {je}", exc_info=True)
-                    # Ainda deleta para evitar retry infinito de mensagem mal formada
+                    # 4. Deleta com sucesso
                     sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+                    logger.info("✅ Mensagem processada e deletada com sucesso")
 
-                except InvalidAtivoError as iae:
-                    logger.error(f"❌ Ativo inválido: {iae}", exc_info=True)
+                except (json.JSONDecodeError, ValueError, TypeError) as bad_data_err:
+                    # Erro de formatação (payload ruim). Deletar para não travar a fila em loop.
+                    logger.error(f"❌ Payload inválido. Descartando mensagem: {bad_data_err}")
                     sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-
-                except DatabaseError as dbe:
-                    logger.error(f"❌ Erro ao acessar banco de dados: {dbe}", exc_info=True)
-                    # Não deleta para retry posterior
-
-                except TradingAnalysisError as tae:
-                    logger.error(f"❌ Erro ao analisar trading: {tae}", exc_info=True)
-                    # Não deleta para retry posterior
 
                 except Exception as process_err:
-                    logger.error(
-                        f"❌ Erro inesperado ao processar mensagem: {process_err}",
-                        exc_info=True
-                    )
-                    # Não deleta para retry posterior
+                    # Erro de infraestrutura (banco fora, etc). NÃO deletar, permite retry na fila.
+                    logger.error(f"❌ Erro ao processar ativo. Mantendo na fila para retry: {process_err}", exc_info=True)
 
-        except ReadTimeoutError:
-            logger.warning("⏱️ ReadTimeout na fila: sem resposta, tentando novamente...")
-
-        except ClientError as e:
-            logger.error(f"❌ Erro AWS SQS: {e.response['Error']['Code']}", exc_info=True)
-            time.sleep(5)  # Pequeno delay antes de retry
-
-        except Exception as e:
-            logger.error(f"❌ Erro crítico ao consumir mensagens: {e}", exc_info=True)
-            time.sleep(5)  # Pequeno delay para evitar loop rápido
-
-        time.sleep(30)
+        except Exception as loop_err:
+            # Erros críticos de conexão com a AWS/SQS ou instabilidade de rede.
+            logger.error(f"❌ Erro crítico no loop SQS: {loop_err}")
+            time.sleep(5)  # Backoff de segurança para não explodir CPU em caso de queda de rede
 
 
 def processar_persistencia(ativo):
     snapshot = SnapshotAcao(ativo)
     logger.info(f" Iniciando persistencia do objeto: : {snapshot}")
     db = SessionLocal()
-    persistencia_service.registrar_snapshot(db, snapshot)
+    try:
+        persistencia_service.registrar_snapshot(db, snapshot)
+    finally:
+        db.close()
 
-
-def processar_info(ativo):
-    # gerar_insights(ativo)
-    insight_single(ativo)
-
-
-def insight_single(ativo):
-    trading = TradingService()
-    decisao, indicadores, insights = trading.processar_ativo(ativo)
-    logger.info(f"🟢 Decisão: {decisao}")
-    logger.info(f"🔣 Indicadores: {indicadores}")
-    logger.info(f"💡 Insights: {insights}")
+def salvar_insight(insight_dict):
+    db = SessionLocal()
+    try:
+        entidade = InsightEntity(
+            simbolo=insight_dict["simbolo"],
+            preco_justo_graham=insight_dict["preco_justo_graham"],
+            margem_seguranca_percent=insight_dict["margem_seguranca_percent"],
+            recomendacao=insight_dict["recomendacao"],
+            detalhes_json=insight_dict["detalhes_json"]
+        )
+        insight_repository.salvar(db, entidade)
+    finally:
+        db.close()

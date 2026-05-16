@@ -6,11 +6,16 @@ from app.config.config_logger import setup_logger
 logger = setup_logger()
 
 # =====================
-# Database Configuration (100% from .env)
+# Database Configuration (Dynamic by Environment)
 # =====================
+environment = os.getenv("ENVIRONMENT", "local")
+
+default_host = "mysql" if environment == "docker" else "localhost"
+default_port = "3306" if environment == "docker" else "3305"
+
 DB_DRIVER = os.getenv("DB_DRIVER", "mysql+pymysql")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "3306")
+DB_HOST = os.getenv("DB_HOST", default_host)
+DB_PORT = os.getenv("DB_PORT", default_port)
 DB_USER = os.getenv("DB_USER", "spring")
 DB_PASS = os.getenv("DB_PASS", "spring123")
 DB_NAME = os.getenv("DB_NAME", "minha_base")

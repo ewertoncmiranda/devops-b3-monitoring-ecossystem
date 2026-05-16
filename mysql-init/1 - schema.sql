@@ -65,3 +65,17 @@ CREATE TABLE IF NOT EXISTS historico_acoes (
     INDEX idx_timestamp (timestamp),
     INDEX idx_simbolo_timestamp (simbolo, timestamp)
 );
+
+-- Tabela de insights extraídos das análises
+CREATE TABLE IF NOT EXISTS insight_acao (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    simbolo VARCHAR(10) NOT NULL,
+    data_analise DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    preco_justo_graham DECIMAL(12,4),
+    margem_seguranca_percent DECIMAL(10,4),
+    recomendacao VARCHAR(20),
+    detalhes_json JSON,
+    
+    INDEX idx_simbolo_insight (simbolo),
+    INDEX idx_data_analise (data_analise)
+);
