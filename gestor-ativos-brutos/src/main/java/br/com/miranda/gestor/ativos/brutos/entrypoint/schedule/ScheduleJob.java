@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.SCHEDULER ;
+import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.SCHEDULER;
 
 @Slf4j
 @Component
@@ -20,51 +20,43 @@ import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.SCHEDULE
 public class ScheduleJob {
 
     private final AtivoService servicePort;
-
-    // fila thread-safe para armazenar códigos registrados via endpoint
     private final ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
 
-    /**
-     * Método chamado por controlador/serviço para registrar um código para processamento assíncrono.
-     */
     public void registerAtivo(String codigoAtivo) {
         if (codigoAtivo == null || codigoAtivo.isBlank()) {
             return;
         }
-        queue.add(codigoAtivo.trim().toUpperCase());
-        log.debug("{}-Ativo registrado na fila: {}", SCHEDULER, codigoAtivo);
+        String ativoNormalizado = codigoAtivo.trim().toUpperCase();
+        queue.add(ativoNormalizado);
+        log.debug("{} - Ativo registrado na fila: {}", SCHEDULER, ativoNormalizado);
     }
 
 
-    @Scheduled(fixedDelay = 25000)
+    @Scheduled(fixedDelay = 9000)
     public void processarAcoes() {
-        log.info("{}-Iniciando processamento em lote de ações", SCHEDULER);
-
+        log.info("{} - Iniciando processamento em lote", SCHEDULER);
         List<String> acoes = new ArrayList<>();
-        String codigo;
-        while ((codigo = queue.poll()) != null) {
-            acoes.add(codigo);
+        String codigoAcao;
+
+        while ((codigoAcao = queue.poll()) != null) {
+            acoes.add(codigoAcao);
         }
 
         if (acoes.isEmpty()) {
-            log.debug("{}-Nenhuma ação na fila de registro. Nenhuma ação processada neste ciclo.", SCHEDULER);
+            log.debug("{} - Nenhuma ação encontrada na fila", SCHEDULER);
             return;
         }
-
-        log.info("{}-Total de ações a processar: {}", SCHEDULER, acoes.size());
-
-        for (String codigoAcao : acoes) {
-            log.info("{}-Processando ação: {}", SCHEDULER, codigoAcao);
+        log.info("{} - Total de ações para processar: {}", SCHEDULER, acoes.size());
+        for (String ativo : acoes) {
             try {
-                servicePort.processar(codigoAcao);
-                log.info("{}-Ação processada com sucesso: {}", SCHEDULER, codigoAcao);
+                log.info("{} - Processando ativo: {}", SCHEDULER, ativo);
+                servicePort.processar(ativo);
+                log.info("{} - Ativo processado com sucesso: {}", SCHEDULER, ativo);
             } catch (Exception e) {
-                log.error("{}-Erro ao processar ação: {}. Erro: {}", SCHEDULER, codigoAcao, e.getMessage(), e);
+                log.error("{} - Erro ao processar ativo: {}", SCHEDULER, ativo, e);
             }
         }
 
-        log.info("{}-Processamento em lote concluído", SCHEDULER);
+        log.info("{} - Processamento concluído", SCHEDULER);
     }
-
 }
-

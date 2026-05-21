@@ -1,13 +1,14 @@
 package br.com.miranda.gestor.ativos.brutos.entrypoint.controller;
 
 
+import br.com.miranda.gestor.ativos.brutos.entrypoint.schedule.ScheduleJob;
 import br.com.miranda.gestor.ativos.brutos.external.Ativo;
 import br.com.miranda.gestor.ativos.brutos.service.AtivoService;
 import lombok.extern.slf4j.Slf4j;
-import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.CONTROLLER;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import br.com.miranda.gestor.ativos.brutos.entrypoint.schedule.ScheduleJob;
+
+import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.CONTROLLER;
 
 @Slf4j
 @RestController
@@ -38,4 +39,3 @@ public class AtivoController {
     }
 
 }
-
