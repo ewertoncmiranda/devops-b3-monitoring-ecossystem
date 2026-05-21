@@ -51,6 +51,8 @@ services:
     depends_on:
       localstack:
         condition: service_healthy
+      terraform-provisioner:
+        condition: service_completed_successfully
     environment:
       ENVIRONMENT: docker
       LOCALSTACK_ENDPOINT: http://localstack:4566
@@ -96,9 +98,10 @@ services:
     depends_on:
       mysql:
         condition: service_started
-
       localstack:
         condition: service_healthy
+      terraform-provisioner:
+        condition: service_completed_successfully
 
     ports:
       - "8091:8091"
@@ -132,6 +135,8 @@ services:
         condition: service_healthy
       localstack:
         condition: service_healthy
+      terraform-provisioner:
+        condition: service_completed_successfully
     environment:
       ENVIRONMENT: docker
       DB_USER: spring

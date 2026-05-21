@@ -2,7 +2,7 @@ import boto3
 import os
 import time
 
-def create_queue():
+def verify_queue():
     # Load configuration from environment variables
     environment = os.environ.get('ENVIRONMENT', 'local')
     default_endpoint = 'http://localstack:4566' if environment == 'docker' else 'http://localhost:4566'
@@ -26,17 +26,12 @@ def create_queue():
     max_retries = 10
     for attempt in range(max_retries):
         try:
-            print(f"Attempting to create queue '{queue_name}' (Attempt {attempt + 1}/{max_retries})...")
-            response = sqs.create_queue(
-                QueueName=queue_name,
-                Attributes={
-                    'VisibilityTimeout': '30'
-                }
-            )
-            print(f"Queue '{queue_name}' created successfully. URL: {response.get('QueueUrl')}")
+            print(f"Verifying if queue '{queue_name}' exists (Attempt {attempt + 1}/{max_retries})...")
+            response = sqs.get_queue_url(QueueName=queue_name)
+            print(f"Queue '{queue_name}' is ready. URL: {response.get('QueueUrl')}")
             break
         except Exception as e:
-            print(f"Error creating queue: {e}")
+            print(f"Queue not found or error: {e}")
             if attempt < max_retries - 1:
                 print("Retrying in 5 seconds...")
                 time.sleep(5)
@@ -45,4 +40,4 @@ def create_queue():
                 raise
 
 if __name__ == '__main__':
-    create_queue()
+    verify_queue()
