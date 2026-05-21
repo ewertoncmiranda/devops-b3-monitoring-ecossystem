@@ -19,21 +19,34 @@ class CoreProcessor:
     financial_analyzer: FinancialAnalyzerService
     insight_repository: InsightRepository
     aws: AwsConfig
-    session_db: None
+    session_factory: object
 
     @staticmethod
     def instanciar(logger: Logger):
         persistence = PersistenciaHistoricoService()
         financial_analyzer = FinancialAnalyzerService(logger=logger)
-        session_db = ConfigDatabase().session
-        insight_repository = InsightRepository(db=session_db, logger=logger)
+        session_factory = ConfigDatabase().session
+        insight_repository = InsightRepository(logger=logger)
         aws = AwsConfig()
         return CoreProcessor(logger=logger,
                              historico_service=persistence,
                              financial_analyzer=financial_analyzer,
                              insight_repository=insight_repository,
                              aws=aws,
-                             session_db=session_db)
+                             session_factory=session_factory)
+
+    def ensure_queue(self, queue_name: str) -> str:
+        try:
+            response = self.aws.get_sqs_client().get_queue_url(QueueName=queue_name)
+            return response['QueueUrl']
+        except Exception as e:
+            self.logger.info(f"Fila {queue_name} não encontrada. Tentando criar...")
+            try:
+                response = self.aws.get_sqs_client().create_queue(QueueName=queue_name)
+                return response['QueueUrl']
+            except Exception as create_err:
+                self.logger.critical(f"Erro fatal ao criar fila {queue_name}: {create_err}")
+                raise create_err
 
     def consume_messages(self, queue_url: str):
         while True:
@@ -53,9 +66,17 @@ class CoreProcessor:
                     receipt_handle = m['ReceiptHandle']
                     try:
                         ativo = json.loads(m['Body'])
-                        self.processar_persistencia(ativo)
-                        insight_dict = self.financial_analyzer.gerar_insight_fundamentalista(ativo)
-                        self.salvar_insight(insight_dict)
+                        
+                        with self.session_factory() as session:
+                            try:
+                                self.processar_persistencia(session, ativo)
+                                insight_dict = self.financial_analyzer.gerar_insight_fundamentalista(ativo)
+                                self.salvar_insight(session, insight_dict)
+                                session.commit()
+                            except Exception as e:
+                                session.rollback()
+                                raise e
+                        
                         self.aws.get_sqs_client().delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
                         self.logger.info("Mensagem processada e deletada com sucesso")
 
@@ -72,24 +93,17 @@ class CoreProcessor:
                 self.logger.error(f"Erro crítico no loop SQS: {loop_err}")
                 time.sleep(5)
 
-    def processar_persistencia(self, ativo):
+    def processar_persistencia(self, session, ativo):
         snapshot = SnapshotAcao(ativo)
         self.logger.info(f"Iniciando persistencia do objeto: {snapshot}")
-        try:
-            self.historico_service.registrar_snapshot(self.session_db, snapshot)
-        finally:
-            self.session_db.close()
+        self.historico_service.registrar_snapshot(session, snapshot)
 
-    def salvar_insight(self, insight_dict):
-
-        try:
-            entidade = InsightEntity(
-                simbolo=insight_dict["simbolo"],
-                preco_justo_graham=insight_dict["preco_justo_graham"],
-                margem_seguranca_percent=insight_dict["margem_seguranca_percent"],
-                recomendacao=insight_dict["recomendacao"],
-                detalhes_json=insight_dict["detalhes_json"]
-            )
-            self.insight_repository.salvar(self.session_db, entidade)
-        finally:
-            self.session_db.close()
+    def salvar_insight(self, session, insight_dict):
+        entidade: InsightEntity = InsightEntity(
+            simbolo=insight_dict["simbolo"],
+            preco_justo_graham=insight_dict["preco_justo_graham"],
+            margem_seguranca_percent=insight_dict["margem_seguranca_percent"],
+            recomendacao=insight_dict["recomendacao"],
+            detalhes_json=insight_dict["detalhes_json"]
+        )
+        self.insight_repository.salvar(session, entidade)

@@ -28,3 +28,6 @@ class TradingAnalysisError(GerarInsightsException):
     """Erro ao analisar e gerar insights de trading"""
     pass
 
+
+class DatabaseConnectionError(Exception):
+    pass

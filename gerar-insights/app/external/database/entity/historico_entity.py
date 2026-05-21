@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, DECIMAL, BigInteger
-from app.external.database.entity.base import Base
+from app.config.database_config import Base
 from datetime import datetime
 
 

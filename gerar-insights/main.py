@@ -5,15 +5,16 @@ from app.config.settings import Settings
 from app.core.core_processor import CoreProcessor
 
 logger = setup_logger()
-settings = Settings()
-core = CoreProcessor.instanciar(logger=logger)
 
 
 def main():
     try:
-        # wait_for_mysql(engine)
+
+        settings = Settings()
+        core = CoreProcessor.instanciar(logger=logger)
+
         queue_url = core.ensure_queue(settings.queue_name)
-        logger.info("Starting message consumption")
+        logger.info("Iniciando processamento ...")
         core.consume_messages(queue_url)
     except Exception as e:
         logger.critical(f"Erro Critico durante processamento: {e}", exc_info=True)

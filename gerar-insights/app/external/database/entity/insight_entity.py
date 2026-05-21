@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Numeric, JSON
 from sqlalchemy.sql import func
-from app.external.database.entity.base import Base
+from app.config.database_config import Base
 
 class InsightEntity(Base):
     __tablename__ = 'insight_acao'

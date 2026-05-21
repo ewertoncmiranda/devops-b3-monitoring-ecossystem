@@ -1,4 +1,5 @@
-from app.dto.market_data import MarketData
+from app.core.strategies.dto.market_data import MarketData
+
 
 # mean_reversion_strategy.py
 class MeanReversionStrategy:
