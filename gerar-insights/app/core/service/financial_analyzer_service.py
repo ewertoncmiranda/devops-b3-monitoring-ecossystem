@@ -1,12 +1,9 @@
-from app.config.config_logger import setup_logger
+from logging import Logger
 
-logger = setup_logger()
 
 class FinancialAnalyzerService:
-    """
-    Serviço centralizado para extrair inteligência e valor financeiro de um ativo
-    baseando-se nos seus dados brutos de mercado.
-    """
+    def __init__(self,logger: Logger):
+        self.logger = logger
 
     def gerar_insight_fundamentalista(self, ativo: dict) -> dict:
         simbolo = ativo.get("symbol", "UNKNOWN")
@@ -14,7 +11,7 @@ class FinancialAnalyzerService:
         lpa = ativo.get("earningsPerShare")
         max52 = ativo.get("fiftyTwoWeekHigh")
 
-        logger.info(f"Analisando ativo {simbolo} (Preço: {preco}, LPA: {lpa})")
+        self.logger.info(f"Analisando ativo {simbolo} (Preço: {preco}, LPA: {lpa})")
 
         # Fallbacks caso falte dados fundamentais
         if not preco or not lpa or lpa <= 0:

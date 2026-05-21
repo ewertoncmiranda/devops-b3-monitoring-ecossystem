@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
+
 from app.config.database_config import SessionLocal
-from app.external.database.entity.historico_entity import HistoricoAcaoEntity
 from app.external.database.entity.ativos_entity import AtivoEntity
 
 

@@ -15,14 +15,24 @@ Aplicação backend robusta desenhada em **Java com Spring Boot**. Seu propósit
 - **Lombok**: Lib que reduz drasticamente código de *boilerplate* em classes de domínio (getters, setters, builders, logs).
 
 ## Variáveis de Ambiente e Configuração
-O comportamento do framework é altamente dirigido pelos perfis (`application.properties` ou `.env`). 
+A aplicação suporta parametrização dinâmica via variáveis de ambiente com fallbacks seguros.
 
-| Variável / Propriedade | Padrão | Descrição |
+| Variável | Padrão (Local) | Descrição |
 | --- | --- | --- |
-| `SPRING_PROFILES_ACTIVE` | `dev` | Define qual profile (local/dev/prod) será habilitado. |
-| `AWS_SQS_ENDPOINT_BASE` | `http://localhost:4566` | Endpoint local do LocalStack para integração de fila AWS. |
-| `AWS_REGION` | `sa-east-1` | Região emulada da infra AWS. |
-| Banco de Dados Properties | Porta `3306` (Docker) ou `3305` (Local) | Definido no respectivo `application-{profile}.properties`. |
+| `SPRING_PROFILES_ACTIVE` | `dev` | Define qual perfil do Spring Boot será ativo. |
+| `SERVER_PORT` | `9090` | Porta onde o servidor HTTP do Spring Boot irá rodar. |
+| `AWS_SQS_ENDPOINT_BASE` | `http://localstack:4566` | Endpoint da fila SQS AWS emulada (LocalStack). |
+| `AWS_SQS_QUEUE_URL` | `http://localstack:4566/000000000000/tratar-ativos` | URL completa da fila SQS de processamento de ativos. |
+| `AWS_ACCESS_KEY_ID` | `teste` | Credencial AWS Access Key. |
+| `AWS_SECRET_ACCESS_KEY` | `teste` | Credencial AWS Secret Key. |
+| `BRAPI_API_KEY` | `kJfyqy8yUVj94SivLsKq4Q` | Chave de acesso à API externa Brapi para cotações. |
+| `GEMINI_API_KEY` | `AIzaSyBkAO5F4f9oDlFuzFiKbQhV1-UwUJkT86g` | Chave de API padrão do Google Gemini (Google AI Studio). |
+| `DB_URL` | `jdbc:mysql://mysql:3306/minha_base?...` | URL de conexão JDBC do banco de dados MySQL. |
+| `DB_USERNAME` | `spring` | Usuário de conexão do banco de dados. |
+| `DB_PASSWORD` | `spring123` | Senha de conexão do banco de dados. |
+
+> [!NOTE]
+> Você também pode enviar a chave do Gemini de forma dinâmica a cada requisição enviando o header HTTP `X-Gemini-Key` no endpoint `/insights/{simbolo}/analise`.
 
 ## Como Executar
 
@@ -38,3 +48,16 @@ java -jar target/gestor-ativos-brutos-0.0.1-SNAPSHOT.jar
 
 **2. Ambiente Docker**
 Incluso no `docker-compose.yml`, o container subirá de maneira integrada usando o Dockerfile nativo do projeto, vinculando o banco MySQL e o SQS automaticamente sem conflitos de rede.
+
+## Variáveis de ambiente (exemplo e uso em imagens)
+
+Há um arquivo de exemplo `gestor-ativos-brutos/.env.example` com as variáveis necessárias para executar a imagem em ambientes locais ou CI. Copie esse arquivo para `.env` ou exporte as variáveis no seu ambiente antes de levantar o container.
+
+Exemplo rápido:
+
+```bash
+cp gestor-ativos-brutos/.env.example gestor-ativos-brutos/.env
+docker-compose up --build gestor-ativos-brutos
+```
+
+Sugestão técnica (melhoria): criar uma classe `@ConfigurationProperties` no Spring (`ConfigProperties`) que centralize a declaração das variáveis, valide valores obrigatórios e injete as configurações nos beans. Posso implementar essa mudança se desejar (cria a validação e reduz dependências espalhadas).

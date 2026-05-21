@@ -1,14 +1,23 @@
+from dataclasses import dataclass
+from logging import Logger
+
 from sqlalchemy.orm import Session
-from app.config.config_logger import setup_logger
+
 from app.external.database.entity.insight_entity import InsightEntity
 
-logger = setup_logger()
 
+@dataclass
 class InsightRepository:
 
-    def salvar(self, db: Session, entidade: InsightEntity):
-        db.add(entidade)
-        db.commit()
-        db.refresh(entidade)
-        logger.info(f"Insight para o ativo {entidade.simbolo} salvo no banco com sucesso.")
+    def __init__(self, logger: Logger, db: Session):
+        self.db = db
+        self.logger = logger
+
+
+
+    def salvar(self,entidade: InsightEntity):
+        self.db.add(entidade)
+        self.db.commit()
+        self.db.refresh(entidade)
+        self.logger.info(f"Insight para o ativo {entidade.simbolo} salvo no banco com sucesso.")
         return entidade
