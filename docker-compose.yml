@@ -41,25 +41,6 @@ services:
       localstack:
         condition: service_healthy
 
-  # -----------------------------------------------------------
-  # PYTHON QUEUE MANAGER
-  # -----------------------------------------------------------
-  gerenciador-filas:
-    build:
-      context: ./gerenciador-filas
-    container_name: gerenciador-filas
-    depends_on:
-      localstack:
-        condition: service_healthy
-      terraform-provisioner:
-        condition: service_completed_successfully
-    environment:
-      ENVIRONMENT: docker
-      LOCALSTACK_ENDPOINT: http://localstack:4566
-      AWS_REGION: sa-east-1
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
-      QUEUE_NAME: tratar-ativos
 
   # -----------------------------------------------------------
   # MYSQL
@@ -116,7 +97,6 @@ services:
 
       AWS_SQS_ENDPOINT_BASE: http://localstack:4566
       AWS_SQS_QUEUE_URL: http://localstack:4566/000000000000/tratar-ativos
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
       BRAPI_API_KEY: ${BRAPI_API_KEY}
 
     volumes:

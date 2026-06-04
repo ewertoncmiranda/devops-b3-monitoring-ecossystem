@@ -1,5 +1,6 @@
 package br.com.miranda.gestor.ativos.brutos.external.queue;
 
+import br.com.miranda.gestor.ativos.brutos.entrypoint.FilaIndisponivelException;
 import br.com.miranda.gestor.ativos.brutos.port.QueueConnectPort;
 import lombok.extern.slf4j.Slf4j;
 import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.QUEUE;
@@ -23,6 +24,8 @@ public class QueueConnectImpl implements QueueConnectPort {
     @Autowired
     SqsClient sqsClient ;
 
+    Integer tentativas = 0;
+
     @Override
     public String enviarMensagemParaFila(String mensagem) {
         log.info("{}-Preparando envio de mensagem para fila: {}", QUEUE, queueUrl);
@@ -35,12 +38,15 @@ public class QueueConnectImpl implements QueueConnectPort {
                     .build());
 
             log.info("{}-Mensagem enviada com sucesso. Message ID: {}", QUEUE, response.messageId());
-            log.debug("{}-Resposta SQS: {}", QUEUE, response.toString());
-
             return response.toString();
         } catch (Exception e) {
+            if (tentativas < 3) {
+                tentativas++;
+                log.warn("{}-Falha ao enviar mensagem para fila. Tentativa {}/3. Erro: {}", QUEUE, tentativas, e.getMessage());
+                return enviarMensagemParaFila(mensagem);
+            }
             log.error("{}-Erro ao enviar mensagem para fila: {}. Erro: {}", QUEUE, queueUrl, e.getMessage(), e);
-            throw e;
+            throw new FilaIndisponivelException("Fila Indisponivel",e);
         }
     }
 }

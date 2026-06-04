@@ -1,8 +1,8 @@
 package br.com.miranda.gestor.ativos.brutos.service;
 
+import br.com.miranda.gestor.ativos.brutos.entrypoint.FilaIndisponivelException;
 import br.com.miranda.gestor.ativos.brutos.external.Ativo;
 import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiAtivoDTO;
-import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiResponseDTO;
 import br.com.miranda.gestor.ativos.brutos.port.QueueConnectPort;
 import br.com.miranda.gestor.ativos.brutos.tools.Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -34,41 +34,29 @@ public class AtivoService {
 
 
     public Ativo processar(String codAtivo) {
-
         log.info("{} - Iniciando processamento do ativo: {}", SERVICE, codAtivo);
-
-
         var retorno = consultaBrApiService.executar(codAtivo);
-
-
         if (Objects.isNull(retorno) || retorno.getResults().isEmpty()) {
-
             log.error("{} - Nenhum dado retornado para ativo: {}", SERVICE, codAtivo);
-
-            throw new RuntimeException(
-                    "Nenhum dado retornado para o ativo: " + codAtivo
-            );
+            return null;
         }
 
         log.debug("{} - Total de resultados recebidos: {}", SERVICE, retorno.getResults().size());
-
         BrapiAtivoDTO brapiDto = retorno.getResults().getFirst();
 
         log.debug("{} - Resultado selecionado: symbol={}, name={}", SERVICE, brapiDto.getSymbol(), brapiDto.getLongName());
-
         Ativo ativo = mapper.map(brapiDto, Ativo.class);
 
         log.debug("{} - Ativo convertido para domínio: {}", SERVICE, ativo.getSymbol());
-
         String payload = Utils.toJson(ativo);
 
         log.info("{} - Payload JSON gerado com {} bytes", SERVICE, payload.length());
 
-        queueConnectPort.enviarMensagemParaFila(payload);
-
-        log.info("{} - Mensagem enviada para fila: {}", SERVICE, codAtivo);
-
-        log.info("{} - Processamento finalizado para ativo: {}", SERVICE, codAtivo);
+        try {
+            queueConnectPort.enviarMensagemParaFila(payload);
+        }catch (FilaIndisponivelException e) {
+            log.error("{} - Falha ao enviar mensagem para fila,fluxo indisponivel {}", SERVICE, e.getMessage(), e);
+        }
 
         return ativo;
     }

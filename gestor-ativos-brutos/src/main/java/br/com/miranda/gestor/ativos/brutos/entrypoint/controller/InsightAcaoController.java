@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Objects;
 
 import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.BRAPI_SERVICE;
 
@@ -34,11 +35,18 @@ public class InsightAcaoController {
     @GetMapping("/{simbolo}/analise")
     public Mono<AiAnalysisResponseDTO> buscarPorSimbolo(
             @PathVariable String simbolo,
-            @RequestHeader(value = "X-Gemini-Key") String apiKey) {
+            @RequestHeader(value = "X-Gemini-Key" ,required = true) String apiKey) {
 
         log.info("{}-Buscando insights e gerando análise IA para simbolo: {}", BRAPI_SERVICE, simbolo);
 
         List<InsightAcao> sAcaos = service.buscarPorSimbolo(simbolo);
+        if (Objects.isNull(sAcaos) || sAcaos.isEmpty()) {
+            log.warn("{}-Nenhum insight encontrado para simbolo: {}", BRAPI_SERVICE, simbolo);
+            return Mono.just(AiAnalysisResponseDTO.builder()
+                    .resumo("Nenhum insight encontrado para o símbolo: " + simbolo)
+                    .build());
+        }
+
         InsightConsolidadoDTO consolidado = InsightConsolidator.consolidar(sAcaos);
 
         String prompt = PromptBuilderUtils.montarPromptAnaliseQuantitativa(consolidado);
@@ -51,7 +59,7 @@ public class InsightAcaoController {
         try {
             String cleanJson = rawResponse
                     .replaceAll("(?i)```json", "")
-                    .replaceAll("```", "")
+                    .replace("```", "")
                     .trim();
 
             return objectMapper.readValue(cleanJson, AiAnalysisResponseDTO.class);
