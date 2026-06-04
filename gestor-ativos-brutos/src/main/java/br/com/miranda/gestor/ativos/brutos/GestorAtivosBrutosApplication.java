@@ -1,6 +1,5 @@
 package br.com.miranda.gestor.ativos.brutos;
 
-import br.com.miranda.gestor.ativos.brutos.config.DatabaseHealthCheck;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
@@ -15,7 +14,6 @@ import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.MAIN;
 @RequiredArgsConstructor
 public class GestorAtivosBrutosApplication {
 
-    private final DatabaseHealthCheck databaseHealthCheck;
 
     public static void main(String[] args) {
         log.info("{} ========================================", MAIN);
@@ -29,14 +27,4 @@ public class GestorAtivosBrutosApplication {
         log.info("{} ========================================", MAIN);
     }
 
-    @EventListener(ContextRefreshedEvent.class)
-    public void onApplicationStart() {
-        boolean dbAvailable = databaseHealthCheck.isDatabaseAvailable();
-        if (dbAvailable) {
-            log.info("(STARTUP)-Aplicação iniciada com sucesso. Banco de dados disponível.");
-        } else {
-            log.warn("(STARTUP)-Aplicação iniciada, mas banco de dados NÃO está disponível. "
-                    + "Operações que exigem DB falharão com DatabaseUnavailableException.");
-        }
-    }
 }

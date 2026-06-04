@@ -1,28 +1,39 @@
 # B3 Monitoring & AI Insights Ecosystem 
 
-Este ecossistema foi projetado para monitorar ativos da bolsa brasileira (B3) em tempo real, processar dados fundamentalistas de forma distribuída e gerar análises preditivas/quantitativas utilizando Inteligência Artificial (Google Gemini).
+-----
+Projeto modular para captura, processamento e armazenamento de insights sobre ativos (B3). Composto por:
+- `gestor-ativos-brutos` — Serviço Java (Spring Boot) que processa e publica/consome mensagens (SQS), expõe métricas e healthchecks.
+- `gerar-insights` — Worker Python que consome filas, realiza análise e persiste dados no banco.
+- Infra local via Docker Compose: MySQL, LocalStack (SQS), Terraform provisioner.
 
-## ️ Arquitetura do Sistema
+Este README reúne instruções de execução local, interoperabilidade entre componentes e as variáveis de ambiente OBRIGATÓRIAS que, se ausentes, causam falha na aplicação.
 
-O sistema utiliza uma arquitetura baseada em eventos e microserviços, garantindo escalabilidade e resiliência.
+Proposta de valor técnico
+-----------------------------------------------------------
+- Demonstra arquitetura orientada a eventos (SQS), integração entre serviços Java e Python.
+- Mostra habilidades em Docker, Docker Compose, LocalStack, Terraform, Spring Boot, Python e testes.
+- Mostra práticas operacionais: healthchecks, actuator, métricas, e separação de responsabilidades.
 
-```mermaid
-graph TD
-    User([Usuário]) --> |REST| JavaApp[Gestor Ativos Brutos - Java]
-    JavaApp --> |SQL| MySQL[(MySQL 8.0)]
-    JavaApp --> |Pub| SQS[[AWS SQS - LocalStack]]
-    JavaApp --> |API| Brapi{Brapi API}
-    
-    SQS --> |Sub| PythonWorker[Gerar Insights - Python]
-    PythonWorker --> |Process| Graham[Análise de Graham/Valuation]
-    PythonWorker --> |SQL| MySQL
-    
-    JavaApp --> |Prompt| Gemini[Google Gemini AI]
-    Gemini --> |JSON| JavaApp
-    
-    Infrastructure[Terraform] --> |Provision| SQS
-```
+Arquitetura e fluxo de dados
+---------------------------
+1. Provisionamento (opcional) — `terraform` cria recursos (em localstack para dev).
+2. Producer/Producer-like (p.ex. outros componentes) enviam mensagens para SQS `tratar-ativos`.
+3. `gestor-ativos-brutos` consome/valida mensagens, pode enriquecer dados via BRAPI e publicar eventos.
+4. `gerar-insights` (Python worker) consome a fila `tratar-ativos`, realiza análises (mean reversion, momentum, valuation) e persiste resultados em MySQL.
+5. Métricas e healthchecks expostos pelo Java via Spring Actuator; logs em volume compartilhado.
 
+Componentes principais (local)
+- `localstack` (SQS) — endpoint: 4566
+- `mysql` — banco de dados (schema em `mysql-init/`)
+- `gestor-ativos-brutos` — porta HTTP exposta: 8091 (container)
+- `gerar-insights` — porta HTTP exposta: 8080 (worker/API)
+
+Execução rápida (com Docker Compose)
+-----------------------------------
+1. Copie/ajuste um `.env` local (exemplo abaixo).
+2. Suba os serviços:
+```bash
+docker compose up --build
 ## ️ Componentes e Tecnologias
 
 ### 1. Gestor Ativos Brutos (Java 21 + Spring Boot 3)
@@ -78,11 +89,11 @@ docker-compose up -d --build
 Todo o ecossistema é altamente configurável de forma dinâmica por meio de variáveis de ambiente. Ao disponibilizar as imagens no Docker Hub ou ao executá-las localmente, você pode customizar os seguintes parâmetros:
 
 ### Variáveis Globais (Infraestrutura)
-| Variável | Descrição | Valor Padrão |
-|----------|-----------|--------------|
-| `SERVER_PORT` | Porta onde o serviço Java escutará | `8091` |
-| `AWS_SQS_ENDPOINT_BASE` | Endpoint do LocalStack | `http://localstack:4566` |
-| `GEMINI_API_KEY` | Chave de acesso ao Google Gemini | `AIzaSyBkAO5F4f...` (Default de fallback) |
+| Variável | Descrição | Valor Padrão                             |
+|----------|-----------|------------------------------------------|
+| `SERVER_PORT` | Porta onde o serviço Java escutará | `8091`                                   |
+| `AWS_SQS_ENDPOINT_BASE` | Endpoint do LocalStack | `http://localstack:4566`                 |
+| `GEMINI_API_KEY` | Chave de acesso ao Google Gemini | `<SUA_CHAVE_AQUI>` (Default de fallback) |
 
 ### Variáveis do Banco de Dados (MySQL)
 | Variável | Descrição | Valor Padrão |

@@ -1,6 +1,4 @@
 package br.com.miranda.gestor.ativos.brutos.service;
-
-import br.com.miranda.gestor.ativos.brutos.config.ValidateDatabaseConnection;
 import br.com.miranda.gestor.ativos.brutos.external.InsightAcao;
 import br.com.miranda.gestor.ativos.brutos.repository.InsightAcaoRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +14,6 @@ public class InsightAcaoService {
 
     private final InsightAcaoRepository repository;
 
-    @ValidateDatabaseConnection(required = true)
     public List<InsightAcao> buscarPorSimbolo(String simbolo) {
         try {
             return repository.findBySimbolo(simbolo);
@@ -27,7 +24,6 @@ public class InsightAcaoService {
 
     }
 
-    @ValidateDatabaseConnection(required = true)
     public List<InsightAcao> buscarPorSimboloNative(String simbolo) {
         return repository.findBySimboloNative(simbolo);
     }
