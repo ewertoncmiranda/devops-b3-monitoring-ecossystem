@@ -1,5 +1,6 @@
 package br.com.miranda.gestor.ativos.brutos.service;
 
+import br.com.miranda.gestor.ativos.brutos.entrypoint.FilaIndisponivelException;
 import br.com.miranda.gestor.ativos.brutos.external.Ativo;
 import br.com.miranda.gestor.ativos.brutos.external.dto.BrapiAtivoDTO;
 import br.com.miranda.gestor.ativos.brutos.port.QueueConnectPort;
@@ -10,47 +11,53 @@ import org.springframework.stereotype.Service;
 
 import java.util.Objects;
 
+import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.SERVICE;
+
 @Slf4j
 @Service
 public class AtivoService {
 
     private final ConsultaBrApiService consultaBrApiService;
+
     private final QueueConnectPort queueConnectPort;
 
-    public AtivoService(ConsultaBrApiService consultaBrApiService, QueueConnectPort port) {
+    private final ModelMapper mapper = new ModelMapper();
+
+
+    public AtivoService(
+            ConsultaBrApiService consultaBrApiService,
+            QueueConnectPort queueConnectPort
+    ) {
         this.consultaBrApiService = consultaBrApiService;
-        this.queueConnectPort = port;
+        this.queueConnectPort = queueConnectPort;
     }
 
 
     public Ativo processar(String codAtivo) {
-        log.info("[SERVICE] Iniciando processamento para ativo: {}", codAtivo);
-
+        log.info("{} - Iniciando processamento do ativo: {}", SERVICE, codAtivo);
         var retorno = consultaBrApiService.executar(codAtivo);
-
-        if (Objects.isNull(retorno)) {
-            log.error("[SERVICE] Resposta nula da API BRAPI para ativo: {}", codAtivo);
-            throw new RuntimeException();
+        if (Objects.isNull(retorno) || retorno.getResults().isEmpty()) {
+            log.error("{} - Nenhum dado retornado para ativo: {}", SERVICE, codAtivo);
+            return null;
         }
 
-        log.debug("[SERVICE] Resposta BRAPI recebida com {} resultados", retorno.getResults().size());
-
+        log.debug("{} - Total de resultados recebidos: {}", SERVICE, retorno.getResults().size());
         BrapiAtivoDTO brapiDto = retorno.getResults().getFirst();
-        log.debug("[SERVICE] DTO extraído: symbol={}, name={}", brapiDto.getSymbol(), brapiDto.getLongName());
 
-        ModelMapper mapper = new ModelMapper();
+        log.debug("{} - Resultado selecionado: symbol={}, name={}", SERVICE, brapiDto.getSymbol(), brapiDto.getLongName());
         Ativo ativo = mapper.map(brapiDto, Ativo.class);
-        log.debug("[SERVICE] Ativo mapeado para entidade de domínio: {}", ativo.getSymbol());
 
-        var formatado = Utils.toJson(ativo);
-        log.info("[SERVICE] Ativo convertido para JSON, tamanho: {} bytes", formatado.length());
+        log.debug("{} - Ativo convertido para domínio: {}", SERVICE, ativo.getSymbol());
+        String payload = Utils.toJson(ativo);
 
-        log.info("[SERVICE] Enviando mensagem para fila: {}", codAtivo);
-        queueConnectPort.enviarMensagemParaFila(formatado);
-        log.info("[SERVICE] Processamento concluído para ativo: {}", codAtivo);
+        log.info("{} - Payload JSON gerado com {} bytes", SERVICE, payload.length());
+
+        try {
+            queueConnectPort.enviarMensagemParaFila(payload);
+        }catch (FilaIndisponivelException e) {
+            log.error("{} - Falha ao enviar mensagem para fila,fluxo indisponivel {}", SERVICE, e.getMessage(), e);
+        }
 
         return ativo;
     }
-
-
 }

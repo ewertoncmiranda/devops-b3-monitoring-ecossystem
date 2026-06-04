@@ -1,4 +1,5 @@
 package br.com.miranda.gestor.ativos.brutos.entrypoint.schedule;
+
 import br.com.miranda.gestor.ativos.brutos.service.AtivoService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -6,7 +7,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static br.com.miranda.gestor.ativos.brutos.tools.ConstantesUtils.SCHEDULER;
 
 @Slf4j
 @Component
@@ -14,30 +19,44 @@ import java.util.List;
 @AllArgsConstructor
 public class ScheduleJob {
 
-    AtivoService servicePort;
+    private final AtivoService servicePort;
+    private final ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
 
-    @Scheduled(fixedDelay = 25000)
+    public void registerAtivo(String codigoAtivo) {
+        if (codigoAtivo == null || codigoAtivo.isBlank()) {
+            return;
+        }
+        String ativoNormalizado = codigoAtivo.trim().toUpperCase();
+        queue.add(ativoNormalizado);
+        log.debug("{} - Ativo registrado na fila: {}", SCHEDULER, ativoNormalizado);
+    }
+
+
+    @Scheduled(fixedDelay = 9000)
     public void processarAcoes() {
-        log.info("[SCHEDULER] Iniciando processamento em lote de ações");
+        log.info("{} - Iniciando processamento em lote", SCHEDULER);
+        List<String> acoes = new ArrayList<>();
+        String codigoAcao;
 
-        List<String> acoes = acoesPrincipais;
-        log.info("[SCHEDULER] Total de ações a processar: {}", acoes.size());
+        while ((codigoAcao = queue.poll()) != null) {
+            acoes.add(codigoAcao);
+        }
 
-        for (String codigo : acoes) {
-            log.info("[SCHEDULER] Processando ação: {}", codigo);
+        if (acoes.isEmpty()) {
+            log.debug("{} - Nenhuma ação encontrada na fila", SCHEDULER);
+            return;
+        }
+        log.info("{} - Total de ações para processar: {}", SCHEDULER, acoes.size());
+        for (String ativo : acoes) {
             try {
-                servicePort.processar(codigo);
-                log.info("[SCHEDULER] Ação processada com sucesso: {}", codigo);
+                log.info("{} - Processando ativo: {}", SCHEDULER, ativo);
+                servicePort.processar(ativo);
+                log.info("{} - Ativo processado com sucesso: {}", SCHEDULER, ativo);
             } catch (Exception e) {
-                log.error("[SCHEDULER] Erro ao processar ação: {}. Erro: {}", codigo, e.getMessage(), e);
+                log.error("{} - Erro ao processar ativo: {}", SCHEDULER, ativo, e);
             }
         }
 
-        log.info("[SCHEDULER] Processamento em lote concluído");
+        log.info("{} - Processamento concluído", SCHEDULER);
     }
-
-    public static List<String> acoesPrincipais = List.of(
-            "VALE3", "PETR4", "PETR3", "ITUB4", "BBAS3" ) ;
-
 }
-

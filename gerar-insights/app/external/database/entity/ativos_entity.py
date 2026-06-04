@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DECIMAL, DateTime
-from app.external.database.entity.base import Base
+from app.config.database_config import Base
 
 
 class AtivoEntity(Base):

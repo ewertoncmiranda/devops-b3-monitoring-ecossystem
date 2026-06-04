@@ -1,4 +1,4 @@
-from app.dto.market_data import MarketData
+from app.core.strategies.dto.market_data import MarketData
 
 # valuation_strategy.py
 class ValuationStrategy:

@@ -1,50 +1,54 @@
 import os
+import time
+
 from sqlalchemy import create_engine
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
-from app.config.config_logger import setup_logger
+from app.config.settings import Settings
 
-logger = setup_logger()
-
-# =====================
-# Database Configuration (Dynamic by Environment)
-# =====================
-environment = os.getenv("ENVIRONMENT", "local")
-
-default_host = "mysql" if environment == "docker" else "localhost"
-default_port = "3306" if environment == "docker" else "3305"
-
-DB_DRIVER = os.getenv("DB_DRIVER", "mysql+pymysql")
-DB_HOST = os.getenv("DB_HOST", default_host)
-DB_PORT = os.getenv("DB_PORT", default_port)
-DB_USER = os.getenv("DB_USER", "spring")
-DB_PASS = os.getenv("DB_PASS", "spring123")
-DB_NAME = os.getenv("DB_NAME", "minha_base")
-
-# Build connection URL dynamically
-DATABASE_URL = f"{DB_DRIVER}://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-logger.info("=" * 70)
-logger.info("Database Configuration")
-logger.info("=" * 70)
-logger.info(f"  Driver: {DB_DRIVER}")
-logger.info(f"  Host: {DB_HOST}")
-logger.info(f"  Port: {DB_PORT}")
-logger.info(f"  User: {DB_USER}")
-logger.info(f"  Database: {DB_NAME}")
-logger.info("=" * 70)
-
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-    echo=False
-)
-
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-logger.info("Database engine created successfully")
+Base = declarative_base()
+RETRY_ATTEMPTS = int(os.getenv('RETRY_ATTEMPTS', 3))
+RETRY_DELAY = int(os.getenv('RETRY_DELAY', 10))
 
 
+class ConfigDatabase:
+    def __init__(self):
+        self.db = Settings().database_url
+        self.engine = create_engine(
+            self.db,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+            echo=False
+        )
+        self.wait_for_mysql()
+        self.session = sessionmaker(bind=self.engine, autocommit=False, autoflush=False)
 
+    def wait_for_mysql(self):
+        total_wait_time = RETRY_ATTEMPTS * RETRY_DELAY
+        for attempt in range(1, RETRY_ATTEMPTS + 1):
+            try:
+                with self.engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                    return
+            except OperationalError as e:
+                if attempt < RETRY_ATTEMPTS:
+                    time.sleep(RETRY_DELAY)
+                else:
+                    error_msg = (
+                        f"\n{'=' * 70}\n"
+                        f"CRITICAL: Database is unavailable\n"
+                        f"{'=' * 70}\n"
+                        f"MySQL did not respond after {RETRY_ATTEMPTS} attempts\n"
+                        f"(with interval of {RETRY_DELAY}s each = ~{total_wait_time}s total)\n"
+                        f"\nVerify:\n"
+                        f"  - Environment variables (DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME)\n"
+                        f"  - MySQL container status: docker ps\n"
+                        f"  - MySQL logs: docker logs mysql\n"
+                        f"{'=' * 70}\n"
+                    )
+                    print(error_msg)
+                    raise Exception(error_msg) from e
 
 

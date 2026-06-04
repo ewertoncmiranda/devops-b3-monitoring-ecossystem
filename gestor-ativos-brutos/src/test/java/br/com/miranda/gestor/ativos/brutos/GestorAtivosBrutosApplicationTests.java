@@ -7,7 +7,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @ExtendWith(MockitoExtension.class)
-class TheMachineApplicationTests {
+class GestorAtivosBrutosApplicationTests {
 
 	@Test
 	public void test_bypass() {
