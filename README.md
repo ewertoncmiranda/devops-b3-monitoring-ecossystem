@@ -219,6 +219,7 @@ Todo o ecossistema é altamente configurável de forma dinâmica por meio de var
 |----------|-----------|------------------------------------------|
 | `SERVER_PORT` | Porta onde o serviço Java escutará | `8091`                                   |
 | `AWS_SQS_ENDPOINT_BASE` | Endpoint do LocalStack | `http://localstack:4566`                 |
+| `BRAPI_API_KEY` | Chave de acesso a api de ativos da [br-api-bolsa-de-valores](https://brapi.dev/) | `http://localstack:4566`                 |
 | `GEMINI_API_KEY` | Chave de acesso ao Google Gemini | `<SUA_CHAVE_AQUI>` (Default de fallback) |
 
 ### Variáveis do Banco de Dados (MySQL)
